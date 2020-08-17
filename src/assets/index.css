@@ -1,0 +1,13 @@
+.container {
+    margin: auto;
+}
+
+#video {
+    display: block;
+    margin: auto;
+}
+
+#output {
+    display: block;
+    margin: auto;
+}
