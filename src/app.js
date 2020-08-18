@@ -67,7 +67,7 @@ function drawPath(ctx, points, closePath) {
 async function renderPrediction() {
   stats.begin();
 
-  const predictions = await model.estimateFaces(state.video);
+  const predictions = await model.getFace(state.video);
   ctx.drawImage(state.video, 0, 0);
 
   if (predictions.length > 0) {

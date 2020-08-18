@@ -1,16 +1,17 @@
 import * as blazeface from '@tensorflow-models/blazeface';
 import * as tfconv from '@tensorflow/tfjs-converter';
 import * as tf from '@tensorflow/tfjs-core';
+import { Coord2D, Coords3D } from './util';
 interface AnnotatedPredictionValues {
     faceInViewConfidence: number;
     boundingBox: {
-        topLeft: [number, number];
-        bottomRight: [number, number];
+        topLeft: Coord2D;
+        bottomRight: Coord2D;
     };
-    mesh: Array<[number, number, number]>;
-    scaledMesh: Array<[number, number, number]>;
+    mesh: Coords3D;
+    scaledMesh: Coords3D;
     annotations?: {
-        [key: string]: Array<[number, number, number]>;
+        [key: string]: Coords3D;
     };
 }
 interface AnnotatedPredictionTensors {
@@ -37,7 +38,7 @@ export declare class FaceMesh {
     static getAnnotations(): {
         [key: string]: number[];
     };
-    static getUVCoords(): Array<[number, number]>;
+    static getUVCoords(): Coord2D[];
     estimateFaces(input: tf.Tensor3D | ImageData | HTMLVideoElement | HTMLImageElement | HTMLCanvasElement, returnTensors?: boolean, flipHorizontal?: boolean): Promise<AnnotatedPrediction[]>;
 }
 export {};

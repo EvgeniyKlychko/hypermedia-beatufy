@@ -91,17 +91,23 @@ class FaceMesh {
             }
             return input.toFloat().expandDims(0);
         });
-        const savedWebglPackDepthwiseConvFlag = tf.env().get('WEBGL_PACK_DEPTHWISECONV');
-        tf.env().set('WEBGL_PACK_DEPTHWISECONV', true);
-        const predictions = await this.pipeline.predict(image);
-        tf.env().set('WEBGL_PACK_DEPTHWISECONV', savedWebglPackDepthwiseConvFlag);
+        let predictions;
+        if (tf.getBackend() === 'webgl') {
+            const savedWebglPackDepthwiseConvFlag = tf.env().get('WEBGL_PACK_DEPTHWISECONV');
+            tf.env().set('WEBGL_PACK_DEPTHWISECONV', true);
+            predictions = await this.pipeline.predict(image);
+            tf.env().set('WEBGL_PACK_DEPTHWISECONV', savedWebglPackDepthwiseConvFlag);
+        }
+        else {
+            predictions = await this.pipeline.predict(image);
+        }
         image.dispose();
         if (predictions != null && predictions.length > 0) {
             return Promise.all(predictions.map(async (prediction, i) => {
                 const { coords, scaledCoords, box, flag } = prediction;
                 let tensorsToRead = [flag];
                 if (!returnTensors) {
-                    tensorsToRead = tensorsToRead.concat([coords, scaledCoords, box.startPoint, box.endPoint]);
+                    tensorsToRead = tensorsToRead.concat([coords, scaledCoords]);
                 }
                 const tensorValues = await Promise.all(tensorsToRead.map(async (d) => d.array()));
                 const flagValue = tensorValues[0];
@@ -115,8 +121,8 @@ class FaceMesh {
                         mesh: coords,
                         scaledMesh: scaledCoords,
                         boundingBox: {
-                            topLeft: box.startPoint.squeeze(),
-                            bottomRight: box.endPoint.squeeze()
+                            topLeft: tf.tensor1d(box.startPoint),
+                            bottomRight: tf.tensor1d(box.endPoint)
                         }
                     };
                     if (flipHorizontal) {
@@ -124,12 +130,12 @@ class FaceMesh {
                     }
                     return annotatedPrediction;
                 }
-                const [coordsArr, coordsArrScaled, topLeft, bottomRight] = tensorValues.slice(1);
+                const [coordsArr, coordsArrScaled] = tensorValues.slice(1);
                 scaledCoords.dispose();
                 coords.dispose();
                 let annotatedPrediction = {
                     faceInViewConfidence: flagValue,
-                    boundingBox: { topLeft, bottomRight },
+                    boundingBox: { topLeft: box.startPoint, bottomRight: box.endPoint },
                     mesh: coordsArr,
                     scaledMesh: coordsArrScaled
                 };
