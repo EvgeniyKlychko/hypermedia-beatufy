@@ -1,6 +1,7 @@
 import './assets/index.css';
 import * as tf from '@tensorflow/tfjs';
-import * as facemesh from '@tensorflow-models/facemesh';
+// import * as facemesh from './lib/facemesh';
+import * as facemesh from './lib/facemesh-custom';
 import Stats from 'stats.js';
 import {TRIANGULATION} from './triangulation';
 
