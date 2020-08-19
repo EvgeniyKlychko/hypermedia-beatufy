@@ -67,20 +67,27 @@ function drawPath(ctx, points, closePath) {
 async function renderPrediction() {
   stats.begin();
 
+  // const canvas1 = document.querySelector('#test')
+  const canvas2 = document.querySelector('#test2')
+  // const canvas1Ctx = canvas1.getContext('2d')
+  const canvas2Ctx = canvas2.getContext('2d')
   const predictions = await model.getFace(state.video);
   ctx.drawImage(state.video, 0, 0);
 
+  console.log('---------predictions------------', predictions)
+  // tf.browser.toPixels(predictions[0].face.squeeze(), canvas)
+  tf.browser.toPixels(predictions[0].face2.squeeze(), canvas2)
   if (predictions.length > 0) {
     predictions.forEach(prediction => {
       const keypoints = prediction.scaledMesh;
 
-      for (let i = 0; i < TRIANGULATION.length / 3; i++) {
-        const points = [
-          TRIANGULATION[i * 3], TRIANGULATION[i * 3 + 1],
-          TRIANGULATION[i * 3 + 2]
-        ].map(index => keypoints[index]);
+      for (let i = 0; i < keypoints.length; i++) {
+        const x = keypoints[i][0];
+        const y = keypoints[i][1];
 
-        drawPath(ctx, points, true);
+        ctx.beginPath();
+        ctx.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
+        ctx.fill();
       }
     });
   }

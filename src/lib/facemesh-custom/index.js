@@ -154,6 +154,7 @@ class FaceMesh {
         return [];
     }
     async getFace(input, returnTensors = false, flipHorizontal = false) {
+        const [, width] = getInputTensorDimensions(input);
         const image = tf.tidy(() => {
             if (!(input instanceof tf.Tensor)) {
                 input = tf.browser.fromPixels(input);
@@ -171,7 +172,57 @@ class FaceMesh {
             predictions = await this.pipeline.predict(image);
         }
         image.dispose();
-        console.log('--------predictions----------', predictions);
+        if (predictions != null && predictions.length > 0) {
+            return Promise.all(predictions.map(async (prediction, i) => {
+                const { coords, scaledCoords, box, flag, face, face2 } = prediction;
+                let tensorsToRead = [flag];
+                if (!returnTensors) {
+                    tensorsToRead = tensorsToRead.concat([coords, scaledCoords]);
+                }
+                const tensorValues = await Promise.all(tensorsToRead.map(async (d) => d.array()));
+                const flagValue = tensorValues[0];
+                flag.dispose();
+                if (flagValue < this.detectionConfidence) {
+                    this.pipeline.clearRegionOfInterest(i);
+                }
+                if (returnTensors) {
+                    const annotatedPrediction = {
+                        faceInViewConfidence: flagValue,
+                        mesh: coords,
+                        scaledMesh: scaledCoords,
+                        boundingBox: {
+                            topLeft: tf.tensor1d(box.startPoint),
+                            bottomRight: tf.tensor1d(box.endPoint)
+                        }
+                    };
+                    if (flipHorizontal) {
+                        return flipFaceHorizontal(annotatedPrediction, width);
+                    }
+                    return annotatedPrediction;
+                }
+                const [coordsArr, coordsArrScaled] = tensorValues.slice(1);
+                scaledCoords.dispose();
+                coords.dispose();
+                let annotatedPrediction = {
+                    face,
+                    face2,
+                    faceInViewConfidence: flagValue,
+                    boundingBox: { topLeft: box.startPoint, bottomRight: box.endPoint },
+                    mesh: coordsArr,
+                    scaledMesh: coordsArrScaled
+                };
+                if (flipHorizontal) {
+                    annotatedPrediction =
+                        flipFaceHorizontal(annotatedPrediction, width);
+                }
+                const annotations = {};
+                for (const key in keypoints_1.MESH_ANNOTATIONS) {
+                    annotations[key] = keypoints_1.MESH_ANNOTATIONS[key].map(index => annotatedPrediction.scaledMesh[index]);
+                }
+                annotatedPrediction['annotations'] = annotations;
+                return annotatedPrediction;
+            }));
+        }
         return [];
     }
 }

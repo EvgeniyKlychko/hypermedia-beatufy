@@ -164,17 +164,21 @@ class Pipeline {
                 const face = box_1.cutBoxFromImageAndResize(boxCPU, rotatedImage, [
                     this.meshHeight, this.meshWidth
                 ]).div(255);
-                const canvas = document.querySelector('#test');
+                const width = parseInt(boxCPU.endPoint[1] - boxCPU.startPoint[1]);
+                const height = parseInt(boxCPU.endPoint[0] - boxCPU.startPoint[0]);
+                const face2 = box_1.cutBoxFromImageAndResize(boxCPU, input, [
+                    width, height
+                ]).div(255);
                 const [, flag, coords] = this.meshDetector.predict(face);
                 const coordsReshaped = tf.reshape(coords, [-1, 3]);
                 const rawCoords = coordsReshaped.arraySync();
                 const transformedCoordsData = this.transformRawCoords(rawCoords, box, angle, rotationMatrix);
                 const transformedCoords = tf.tensor2d(transformedCoordsData);
-                tf.browser.toPixels(transformedCoords, canvas);
                 const landmarksBox = this.calculateLandmarksBoundingBox(transformedCoordsData);
                 this.regionsOfInterest[i] = Object.assign({}, landmarksBox, { landmarks: transformedCoords.arraySync() });
                 const prediction = {
                     face,
+                    face2,
                     coords: coordsReshaped,
                     scaledCoords: transformedCoords,
                     box: landmarksBox,

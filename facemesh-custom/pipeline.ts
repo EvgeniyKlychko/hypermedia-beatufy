@@ -27,7 +27,8 @@ export type Prediction = {
   scaledCoords: tf.Tensor2D,  // coordinates normalized to the mesh size.
   box: Box,                   // bounding box of coordinates.
   flag: tf.Scalar             // confidence in presence of a face.
-  face?: any
+  face?: any,
+  face2?: any
 };
 
 const UPDATE_REGION_OF_INTEREST_IOU_THRESHOLD = 0.25;
@@ -306,7 +307,12 @@ export class Pipeline {
           this.meshHeight, this.meshWidth
         ]).div(255);
 
-        const canvas: HTMLCanvasElement = document.querySelector('#test')
+        const width = parseInt(boxCPU.endPoint[1] - boxCPU.startPoint[1])
+        const height = parseInt(boxCPU.endPoint[0] - boxCPU.startPoint[0])
+        const face2 = cutBoxFromImageAndResize(boxCPU, input, [
+          width, height
+          // boxCPU.endPoint[1] - boxCPU.startPoint[1], boxCPU.endPoint[0] - boxCPU.startPoint[0]
+        ]).div(255);
 
         // The first returned tensor represents facial contours, which are
         // included in the coordinates.
@@ -321,7 +327,6 @@ export class Pipeline {
             this.transformRawCoords(rawCoords, box, angle, rotationMatrix);
         const transformedCoords = tf.tensor2d(transformedCoordsData);
 
-        tf.browser.toPixels(transformedCoords, canvas)
         const landmarksBox =
             this.calculateLandmarksBoundingBox(transformedCoordsData);
         this.regionsOfInterest[i] = {
@@ -331,6 +336,7 @@ export class Pipeline {
 
         const prediction: Prediction = {
           face,
+          face2,
           coords: coordsReshaped,
           scaledCoords: transformedCoords,
           box: landmarksBox,

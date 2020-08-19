@@ -13,6 +13,8 @@ interface AnnotatedPredictionValues {
     annotations?: {
         [key: string]: Coords3D;
     };
+    face?: any;
+    face2?: any;
 }
 interface AnnotatedPredictionTensors {
     faceInViewConfidence: number;
