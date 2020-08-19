@@ -171,6 +171,7 @@ class FaceMesh {
             predictions = await this.pipeline.predict(image);
         }
         image.dispose();
+        console.log('--------predictions----------', predictions);
         return [];
     }
 }

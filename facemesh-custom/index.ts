@@ -330,6 +330,7 @@ export class FaceMesh {
 
     image.dispose();
 
+    console.log('--------predictions----------', predictions)
     return [];
   }
 }
