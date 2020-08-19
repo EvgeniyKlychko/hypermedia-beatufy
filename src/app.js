@@ -66,18 +66,22 @@ function drawPath(ctx, points, closePath) {
 
 async function renderPrediction() {
   stats.begin();
-
   // const canvas1 = document.querySelector('#test')
   const canvas2 = document.querySelector('#test2')
   // const canvas1Ctx = canvas1.getContext('2d')
   const canvas2Ctx = canvas2.getContext('2d')
-  const predictions = await model.getFace(state.video);
+  const predictions = await model.getFace(state.video, true);
   ctx.drawImage(state.video, 0, 0);
 
-  console.log('---------predictions------------', predictions)
-  // tf.browser.toPixels(predictions[0].face.squeeze(), canvas)
-  tf.browser.toPixels(predictions[0].face2.squeeze(), canvas2)
+  const img = tf.browser.fromPixels(state.video)
+  const faceSmall = predictions[0].face.squeeze()
+  const faceNormal = predictions[0].face2.squeeze()
+
   if (predictions.length > 0) {
+    tf.engine().startScope();
+    tf.browser.toPixels(faceNormal, canvas2)
+    tf.engine().endScope();
+
     predictions.forEach(prediction => {
       const keypoints = prediction.scaledMesh;
 

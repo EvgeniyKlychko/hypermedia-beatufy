@@ -356,6 +356,8 @@ export class FaceMesh {
             faceInViewConfidence: flagValue,
             mesh: coords,
             scaledMesh: scaledCoords,
+            face,
+            face2,
             boundingBox: {
               topLeft: tf.tensor1d(box.startPoint),
               bottomRight: tf.tensor1d(box.endPoint)
@@ -376,8 +378,6 @@ export class FaceMesh {
         coords.dispose();
 
         let annotatedPrediction: AnnotatedPredictionValues = {
-          face,
-          face2,
           faceInViewConfidence: flagValue,
           boundingBox: {topLeft: box.startPoint, bottomRight: box.endPoint},
           mesh: coordsArr,
