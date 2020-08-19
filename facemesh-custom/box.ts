@@ -30,6 +30,7 @@ export function scaleBoxCoordinates(box: Box, factor: Coord2D): Box {
   const startPoint: Coord2D =
       [box.startPoint[0] * factor[0], box.startPoint[1] * factor[1]];
   const endPoint: Coord2D =
+  
       [box.endPoint[0] * factor[0], box.endPoint[1] * factor[1]];
 
   return {startPoint, endPoint};

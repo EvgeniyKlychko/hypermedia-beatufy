@@ -94,7 +94,6 @@ export class Pipeline {
       dot(boxCenter, inverseRotationMatrix[0]),
       dot(boxCenter, inverseRotationMatrix[1])
     ];
-
     return coordsRotated.map((coord): Coord3D => ([
                                coord[0] + originalBoxCenter[0],
                                coord[1] + originalBoxCenter[1], coord[2]
