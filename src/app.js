@@ -115,8 +115,8 @@ function segmentFace(face_img_tensor, keypoints, threshold, sampling_list, blur_
     console.log('color', color)
 
     // compute L2 norm
-    const color_dist = tf.norm(face_img_tensor.sub(color), 'euclidean')
-    console.log('color_dist', color_dist)
+    //const color_dist = tf.norm(face_img_tensor.sub(color), 'euclidean')
+    //console.log('color_dist', color_dist)
 
   })
 }
