@@ -113,6 +113,77 @@ class Pipeline {
             });
         });
     }
+    async getFace(input) {
+        if (this.shouldUpdateRegionsOfInterest()) {
+            const returnTensors = false;
+            const annotateFace = true;
+            const { boxes, scaleFactor } = await this.boundingBoxDetector.getBoundingBoxes(input, returnTensors, annotateFace);
+            if (boxes.length === 0) {
+                this.regionsOfInterest = [];
+                return null;
+            }
+            const scaledBoxes = boxes.map((prediction) => {
+                const predictionBoxCPU = {
+                    startPoint: prediction.box.startPoint.squeeze().arraySync(),
+                    endPoint: prediction.box.endPoint.squeeze().arraySync()
+                };
+                const scaledBox = box_1.scaleBoxCoordinates(predictionBoxCPU, scaleFactor);
+                const enlargedBox = box_1.enlargeBox(scaledBox);
+                return Object.assign({}, enlargedBox, { landmarks: prediction.landmarks.arraySync() });
+            });
+            boxes.forEach((box) => {
+                if (box != null && box.startPoint != null) {
+                    box.startEndTensor.dispose();
+                    box.startPoint.dispose();
+                    box.endPoint.dispose();
+                }
+            });
+            this.updateRegionsOfInterest(scaledBoxes);
+            this.runsWithoutFaceDetector = 0;
+        }
+        else {
+            this.runsWithoutFaceDetector++;
+        }
+        return tf.tidy(() => {
+            return this.regionsOfInterest.map((box, i) => {
+                let angle;
+                const boxLandmarksFromMeshModel = box.landmarks.length === LANDMARKS_COUNT;
+                if (boxLandmarksFromMeshModel) {
+                    const [indexOfNose, indexOfForehead] = MESH_MODEL_KEYPOINTS_LINE_OF_SYMMETRY_INDICES;
+                    angle = util_1.computeRotation(box.landmarks[indexOfNose], box.landmarks[indexOfForehead]);
+                }
+                else {
+                    const [indexOfNose, indexOfForehead] = BLAZEFACE_KEYPOINTS_LINE_OF_SYMMETRY_INDICES;
+                    angle = util_1.computeRotation(box.landmarks[indexOfNose], box.landmarks[indexOfForehead]);
+                }
+                const faceCenter = box_1.getBoxCenter({ startPoint: box.startPoint, endPoint: box.endPoint });
+                const faceCenterNormalized = [faceCenter[0] / input.shape[2], faceCenter[1] / input.shape[1]];
+                const rotatedImage = tf.image.rotateWithOffset(input, angle, 0, faceCenterNormalized);
+                const rotationMatrix = util_1.buildRotationMatrix(-angle, faceCenter);
+                const boxCPU = { startPoint: box.startPoint, endPoint: box.endPoint };
+                const face = box_1.cutBoxFromImageAndResize(boxCPU, rotatedImage, [
+                    this.meshHeight, this.meshWidth
+                ]).div(255);
+                const canvas = document.querySelector('#test');
+                const [, flag, coords] = this.meshDetector.predict(face);
+                const coordsReshaped = tf.reshape(coords, [-1, 3]);
+                const rawCoords = coordsReshaped.arraySync();
+                const transformedCoordsData = this.transformRawCoords(rawCoords, box, angle, rotationMatrix);
+                const transformedCoords = tf.tensor2d(transformedCoordsData);
+                tf.browser.toPixels(transformedCoords, canvas);
+                const landmarksBox = this.calculateLandmarksBoundingBox(transformedCoordsData);
+                this.regionsOfInterest[i] = Object.assign({}, landmarksBox, { landmarks: transformedCoords.arraySync() });
+                const prediction = {
+                    face,
+                    coords: coordsReshaped,
+                    scaledCoords: transformedCoords,
+                    box: landmarksBox,
+                    flag: flag.squeeze()
+                };
+                return prediction;
+            });
+        });
+    }
     updateRegionsOfInterest(boxes) {
         for (let i = 0; i < boxes.length; i++) {
             const box = boxes[i];

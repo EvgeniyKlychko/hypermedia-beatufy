@@ -27,6 +27,7 @@ export type Prediction = {
   scaledCoords: tf.Tensor2D,  // coordinates normalized to the mesh size.
   box: Box,                   // bounding box of coordinates.
   flag: tf.Scalar             // confidence in presence of a face.
+  face?: any
 };
 
 const UPDATE_REGION_OF_INTEREST_IOU_THRESHOLD = 0.25;
@@ -209,6 +210,127 @@ export class Pipeline {
         };
 
         const prediction: Prediction = {
+          coords: coordsReshaped,
+          scaledCoords: transformedCoords,
+          box: landmarksBox,
+          flag: flag.squeeze()
+        };
+
+        return prediction;
+      });
+    });
+  }
+
+  async getFace(input: tf.Tensor4D): Promise<Prediction[]> {
+    if (this.shouldUpdateRegionsOfInterest()) {
+      const returnTensors = false;
+      const annotateFace = true;
+      const {boxes, scaleFactor} =
+          await this.boundingBoxDetector.getBoundingBoxes(
+              input, returnTensors, annotateFace);
+
+      if (boxes.length === 0) {
+        this.regionsOfInterest = [];
+        return null;
+      }
+
+      const scaledBoxes =
+          boxes.map((prediction: blazeface.BlazeFacePrediction): Box => {
+            const predictionBoxCPU = {
+              startPoint: prediction.box.startPoint.squeeze().arraySync() as
+                  Coord2D,
+              endPoint: prediction.box.endPoint.squeeze().arraySync() as Coord2D
+            };
+
+            const scaledBox =
+                scaleBoxCoordinates(predictionBoxCPU, scaleFactor as Coord2D);
+            const enlargedBox = enlargeBox(scaledBox);
+            return {
+              ...enlargedBox,
+              landmarks: prediction.landmarks.arraySync() as Coords3D
+            };
+          });
+
+      boxes.forEach((box: {
+        startPoint: tf.Tensor2D,
+        startEndTensor: tf.Tensor2D,
+        endPoint: tf.Tensor2D
+      }) => {
+        if (box != null && box.startPoint != null) {
+          box.startEndTensor.dispose();
+          box.startPoint.dispose();
+          box.endPoint.dispose();
+        }
+      });
+
+      this.updateRegionsOfInterest(scaledBoxes);
+      this.runsWithoutFaceDetector = 0;
+    } else {
+      this.runsWithoutFaceDetector++;
+    }
+
+    return tf.tidy(() => {
+      return this.regionsOfInterest.map((box, i) => {
+        let angle: number;
+        // The facial bounding box landmarks could come either from blazeface
+        // (if we are using a fresh box), or from the mesh model (if we are
+        // reusing an old box).
+        const boxLandmarksFromMeshModel =
+            box.landmarks.length === LANDMARKS_COUNT;
+        if (boxLandmarksFromMeshModel) {
+          const [indexOfNose, indexOfForehead] =
+              MESH_MODEL_KEYPOINTS_LINE_OF_SYMMETRY_INDICES;
+          angle = computeRotation(
+              box.landmarks[indexOfNose], box.landmarks[indexOfForehead]);
+        } else {
+          const [indexOfNose, indexOfForehead] =
+              BLAZEFACE_KEYPOINTS_LINE_OF_SYMMETRY_INDICES;
+          angle = computeRotation(
+              box.landmarks[indexOfNose], box.landmarks[indexOfForehead]);
+        }
+
+        const faceCenter =
+            getBoxCenter({startPoint: box.startPoint, endPoint: box.endPoint});
+        const faceCenterNormalized: Coord2D =
+            [faceCenter[0] / input.shape[2], faceCenter[1] / input.shape[1]];
+
+        const rotatedImage =
+            tf.image.rotateWithOffset(input, angle, 0, faceCenterNormalized);
+
+        const rotationMatrix = buildRotationMatrix(-angle, faceCenter);
+
+        const boxCPU = {startPoint: box.startPoint, endPoint: box.endPoint};
+
+
+        const face = cutBoxFromImageAndResize(boxCPU, rotatedImage, [
+          this.meshHeight, this.meshWidth
+        ]).div(255);
+
+        const canvas: HTMLCanvasElement = document.querySelector('#test')
+
+        // The first returned tensor represents facial contours, which are
+        // included in the coordinates.
+        const [, flag, coords] =
+            this.meshDetector.predict(
+                face) as [tf.Tensor, tf.Tensor2D, tf.Tensor2D];
+
+        const coordsReshaped: tf.Tensor2D = tf.reshape(coords, [-1, 3]);
+        const rawCoords = coordsReshaped.arraySync() as Coords3D;
+
+        const transformedCoordsData =
+            this.transformRawCoords(rawCoords, box, angle, rotationMatrix);
+        const transformedCoords = tf.tensor2d(transformedCoordsData);
+
+        tf.browser.toPixels(transformedCoords, canvas)
+        const landmarksBox =
+            this.calculateLandmarksBoundingBox(transformedCoordsData);
+        this.regionsOfInterest[i] = {
+          ...landmarksBox,
+          landmarks: transformedCoords.arraySync() as Coords3D
+        };
+
+        const prediction: Prediction = {
+          face,
           coords: coordsReshaped,
           scaledCoords: transformedCoords,
           box: landmarksBox,

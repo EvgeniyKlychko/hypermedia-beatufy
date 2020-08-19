@@ -299,4 +299,37 @@ export class FaceMesh {
 
     return [];
   }
+
+  async getFace(
+      input: tf.Tensor3D|ImageData|HTMLVideoElement|HTMLImageElement|
+          HTMLCanvasElement,
+      returnTensors = false,
+      flipHorizontal = false): Promise<AnnotatedPrediction[]> {
+
+    const image: tf.Tensor4D = tf.tidy(() => {
+      if (!(input instanceof tf.Tensor)) {
+        input = tf.browser.fromPixels(input);
+      }
+      return (input as tf.Tensor).toFloat().expandDims(0);
+    });
+
+    let predictions;
+    if (tf.getBackend() === 'webgl') {
+      // Currently tfjs-core does not pack depthwiseConv because it fails for
+      // very large inputs (https://github.com/tensorflow/tfjs/issues/1652).
+      // TODO(annxingyuan): call tf.enablePackedDepthwiseConv when available
+      // (https://github.com/tensorflow/tfjs/issues/2821)
+      const savedWebglPackDepthwiseConvFlag =
+          tf.env().get('WEBGL_PACK_DEPTHWISECONV');
+      tf.env().set('WEBGL_PACK_DEPTHWISECONV', true);
+      predictions = await this.pipeline.getFace(image);
+      tf.env().set('WEBGL_PACK_DEPTHWISECONV', savedWebglPackDepthwiseConvFlag);
+    } else {
+      predictions = await this.pipeline.predict(image);
+    }
+
+    image.dispose();
+
+    return [];
+  }
 }

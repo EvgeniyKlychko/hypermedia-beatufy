@@ -8,6 +8,7 @@ export declare type Prediction = {
     scaledCoords: tf.Tensor2D;
     box: Box;
     flag: tf.Scalar;
+    face?: any;
 };
 export declare class Pipeline {
     private boundingBoxDetector;
@@ -21,6 +22,7 @@ export declare class Pipeline {
     constructor(boundingBoxDetector: blazeface.BlazeFaceModel, meshDetector: tfconv.GraphModel, meshWidth: number, meshHeight: number, maxContinuousChecks: number, maxFaces: number);
     transformRawCoords(rawCoords: Coords3D, box: Box, angle: number, rotationMatrix: TransformationMatrix): [number, number, number][];
     predict(input: tf.Tensor4D): Promise<Prediction[]>;
+    getFace(input: tf.Tensor4D): Promise<Prediction[]>;
     updateRegionsOfInterest(boxes: Box[]): void;
     clearRegionOfInterest(index: number): void;
     shouldUpdateRegionsOfInterest(): boolean;

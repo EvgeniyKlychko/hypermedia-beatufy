@@ -40,5 +40,6 @@ export declare class FaceMesh {
     };
     static getUVCoords(): Coord2D[];
     estimateFaces(input: tf.Tensor3D | ImageData | HTMLVideoElement | HTMLImageElement | HTMLCanvasElement, returnTensors?: boolean, flipHorizontal?: boolean): Promise<AnnotatedPrediction[]>;
+    getFace(input: tf.Tensor3D | ImageData | HTMLVideoElement | HTMLImageElement | HTMLCanvasElement, returnTensors?: boolean, flipHorizontal?: boolean): Promise<AnnotatedPrediction[]>;
 }
 export {};

@@ -153,6 +153,26 @@ class FaceMesh {
         }
         return [];
     }
+    async getFace(input, returnTensors = false, flipHorizontal = false) {
+        const image = tf.tidy(() => {
+            if (!(input instanceof tf.Tensor)) {
+                input = tf.browser.fromPixels(input);
+            }
+            return input.toFloat().expandDims(0);
+        });
+        let predictions;
+        if (tf.getBackend() === 'webgl') {
+            const savedWebglPackDepthwiseConvFlag = tf.env().get('WEBGL_PACK_DEPTHWISECONV');
+            tf.env().set('WEBGL_PACK_DEPTHWISECONV', true);
+            predictions = await this.pipeline.getFace(image);
+            tf.env().set('WEBGL_PACK_DEPTHWISECONV', savedWebglPackDepthwiseConvFlag);
+        }
+        else {
+            predictions = await this.pipeline.predict(image);
+        }
+        image.dispose();
+        return [];
+    }
 }
 exports.FaceMesh = FaceMesh;
 //# sourceMappingURL=index.js.map
