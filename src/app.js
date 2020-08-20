@@ -113,6 +113,10 @@ function sample_avg_color(img, color_coords, square_side_px){
     //return sample.mean(axis=(0, 1)).reshape(1, 1, 3)
   }
 
+function boxBlur(img){
+  ////
+}
+
 function segmentFace(face_img_tensor, keypoints, threshold, sampling_list, blur_kernel_size){
   var mask = tf.zeros([face_img_tensor.shape[0], face_img_tensor.shape[1], 1])
   //console.log('mask', mask)
@@ -132,7 +136,7 @@ function segmentFace(face_img_tensor, keypoints, threshold, sampling_list, blur_
   })
   mask = mask.clipByValue(0, 1)
   console.log('mask final', mask)
-
+  return mask
 }
 
 // ---------------------- END image processing functions -------------------------
@@ -156,8 +160,8 @@ async function renderPrediction() {
                                         prediction.boundingBox,
                                         prediction.faceSize);
 
-      segmentFace(faceNormal, keypoints, seg_threshold,
-                  sampling_points, box_filter_size)
+      const mask = segmentFace(faceNormal, keypoints, seg_threshold,
+                               sampling_points, box_filter_size)
 
       // commented old keypoints render code
       for (let i = 0; i < keypoints.length; i++) {
@@ -168,11 +172,11 @@ async function renderPrediction() {
         ctx.beginPath();
         ctx.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
         ctx.fill();
-      //}
-    //});
         }
+        await tf.browser.toPixels(mask, canvas)
+        mask.dispose()
       }
-      await tf.browser.toPixels(faceNormal, canvas)
+
       img.dispose()
     //faceSmall.dispose()
       faceNormal.dispose()
