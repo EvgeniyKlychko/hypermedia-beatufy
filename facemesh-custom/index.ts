@@ -46,6 +46,7 @@ interface AnnotatedPredictionValues {
   annotations?: {[key: string]: Coords3D};
   face?: any,
   face2?: any,
+  faceSize?: any
 }
 
 interface AnnotatedPredictionTensors {
@@ -336,7 +337,7 @@ export class FaceMesh {
     // @ts-ignore
     if (predictions != null && predictions.length > 0) {
       return Promise.all(predictions.map(async (prediction: Prediction, i) => {
-        const {coords, scaledCoords, box, flag, face, face2} = prediction;
+        const {coords, scaledCoords, box, flag, face, face2, faceSize} = prediction;
         let tensorsToRead: tf.Tensor[] = [flag];
         if (!returnTensors) {
           tensorsToRead = tensorsToRead.concat([coords, scaledCoords]);
@@ -356,6 +357,7 @@ export class FaceMesh {
             faceInViewConfidence: flagValue,
             mesh: coords,
             scaledMesh: scaledCoords,
+            faceSize,
             face,
             face2,
             boundingBox: {

@@ -164,10 +164,8 @@ class Pipeline {
                 const face = box_1.cutBoxFromImageAndResize(boxCPU, rotatedImage, [
                     this.meshHeight, this.meshWidth
                 ]).div(255);
-                const width = parseInt(boxCPU.endPoint[1] - boxCPU.startPoint[1]);
-                const height = parseInt(boxCPU.endPoint[0] - boxCPU.startPoint[0]);
                 const face2 = box_1.cutBoxFromImageAndResize(boxCPU, input, [
-                    width, height
+                    this.meshHeight, this.meshWidth
                 ]).div(255);
                 const [, flag, coords] = this.meshDetector.predict(face);
                 const coordsReshaped = tf.reshape(coords, [-1, 3]);
@@ -179,6 +177,7 @@ class Pipeline {
                 const prediction = {
                     face,
                     face2,
+                    faceSize: box_1.getBoxSize(box),
                     coords: coordsReshaped,
                     scaledCoords: transformedCoords,
                     box: landmarksBox,

@@ -29,6 +29,7 @@ export type Prediction = {
   flag: tf.Scalar             // confidence in presence of a face.
   face?: any,
   face2?: any
+  faceSize?: any
 };
 
 const UPDATE_REGION_OF_INTEREST_IOU_THRESHOLD = 0.25;
@@ -306,11 +307,10 @@ export class Pipeline {
           this.meshHeight, this.meshWidth
         ]).div(255);
 
-        const width = parseInt(boxCPU.endPoint[1] - boxCPU.startPoint[1])
-        const height = parseInt(boxCPU.endPoint[0] - boxCPU.startPoint[0])
+        // const width = parseInt(boxCPU.endPoint[1] - boxCPU.startPoint[1])
+        // const height = parseInt(boxCPU.endPoint[0] - boxCPU.startPoint[0])
         const face2 = cutBoxFromImageAndResize(boxCPU, input, [
-          width, height
-          // boxCPU.endPoint[1] - boxCPU.startPoint[1], boxCPU.endPoint[0] - boxCPU.startPoint[0]
+          this.meshHeight, this.meshWidth
         ]).div(255);
 
         // The first returned tensor represents facial contours, which are
@@ -336,6 +336,7 @@ export class Pipeline {
         const prediction: Prediction = {
           face,
           face2,
+          faceSize: getBoxSize(box),
           coords: coordsReshaped,
           scaledCoords: transformedCoords,
           box: landmarksBox,

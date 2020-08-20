@@ -10,6 +10,7 @@ export declare type Prediction = {
     flag: tf.Scalar;
     face?: any;
     face2?: any;
+    faceSize?: any;
 };
 export declare class Pipeline {
     private boundingBoxDetector;

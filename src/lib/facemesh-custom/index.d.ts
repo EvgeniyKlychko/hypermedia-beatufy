@@ -15,6 +15,7 @@ interface AnnotatedPredictionValues {
     };
     face?: any;
     face2?: any;
+    faceSize?: any;
 }
 interface AnnotatedPredictionTensors {
     faceInViewConfidence: number;

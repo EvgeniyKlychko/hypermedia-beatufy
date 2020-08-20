@@ -174,7 +174,7 @@ class FaceMesh {
         image.dispose();
         if (predictions != null && predictions.length > 0) {
             return Promise.all(predictions.map(async (prediction, i) => {
-                const { coords, scaledCoords, box, flag, face, face2 } = prediction;
+                const { coords, scaledCoords, box, flag, face, face2, faceSize } = prediction;
                 let tensorsToRead = [flag];
                 if (!returnTensors) {
                     tensorsToRead = tensorsToRead.concat([coords, scaledCoords]);
@@ -190,6 +190,7 @@ class FaceMesh {
                         faceInViewConfidence: flagValue,
                         mesh: coords,
                         scaledMesh: scaledCoords,
+                        faceSize,
                         face,
                         face2,
                         boundingBox: {

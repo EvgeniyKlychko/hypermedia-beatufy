@@ -8,13 +8,13 @@ import {TRIANGULATION} from './triangulation';
 const stats = new Stats();
 const canvas = document.getElementById('output');
 const ctx = canvas.getContext('2d');
-// const canvas1 = document.querySelector('#test')
-const canvas2 = document.querySelector('#test2')
-// const canvas1Ctx = canvas1.getContext('2d')
-const canvas2Ctx = canvas2.getContext('2d')
+//const canvas1 = document.querySelector('#test')
+//const canvas2 = document.querySelector('#test2')
+//const canvas1Ctx = canvas1.getContext('2d')
+//const canvas2Ctx = canvas2.getContext('2d')
 const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 84, 2, 1]
 const sample_size_px = 3
-const seg_threshold = 0.08
+const seg_threshold = tf.tensor1d([0.08])
 const box_filter_size = 5
 
 window.tf = tf
@@ -77,15 +77,21 @@ function drawPath(ctx, points, closePath) {
 
 // ---------------------- image processing functions ---------------------------
 
-function modifyKeypoints(keypoints_orig, box){
+function modifyKeypoints(keypoints_orig, box, faceSize){
+
+  let [ width, height ] = faceSize
+  const widthC = 192 / width
+  const heightC = 192 / height
+  const widthTensor = tf.tensor1d([widthC])
+  const heightTensor = tf.tensor1d([heightC])
 
   const x = box.topLeft.slice([0], [1])
   const y = box.topLeft.slice([1], [1])
   //console.log(x)
   //console.log(y)
   //console.log('orig keypoints', keypoints_orig)
-  const keypoints_x = keypoints_orig.slice([0, 0], [-1, 1]).sub(x)
-  const keypoints_y = keypoints_orig.slice([0, 1], [-1, 1]).sub(y)
+  const keypoints_x = keypoints_orig.slice([0, 0], [-1, 1]).sub(x).mul(widthTensor)
+  const keypoints_y = keypoints_orig.slice([0, 1], [-1, 1]).sub(y).mul(heightTensor)
   const keypoints_z = keypoints_orig.slice([0, 2], [-1, 1])
   //console.log('x', keypoints_x)
   //console.log('y', keypoints_y)
@@ -108,19 +114,25 @@ function sample_avg_color(img, color_coords, square_side_px){
   }
 
 function segmentFace(face_img_tensor, keypoints, threshold, sampling_list, blur_kernel_size){
-  const mask = tf.zeros([face_img_tensor.shape[0], face_img_tensor.shape[1], 1])
+  var mask = tf.zeros([face_img_tensor.shape[0], face_img_tensor.shape[1], 1])
   //console.log('mask', mask)
   sampling_list.forEach(sample_keypoint => {
     const coords = keypoints[sample_keypoint]
     //console.log('coords', coords)
     const color = sample_avg_color(face_img_tensor, coords, 5)
-    console.log('color', color)
+    //console.log('color', color)
 
     // compute L2 norm
-    //const color_dist = tf.norm(face_img_tensor.sub(color), 'euclidean')
+    // tensor, ord='euclidean', axis=None, keepdims=None, name=None
+    const color_dist = tf.norm(face_img_tensor.sub(color),'euclidean', [2], true)
     //console.log('color_dist', color_dist)
+    const mask_sample = color_dist.less(seg_threshold).cast('int32')
+    mask = mask.add(mask_sample)
 
   })
+  mask = mask.clipByValue(0, 1)
+  console.log('mask final', mask)
+
 }
 
 // ---------------------- END image processing functions -------------------------
@@ -130,7 +142,7 @@ async function renderPrediction() {
   tf.engine().startScope();
   const predictions = await model.getFace(state.video, true);
 
-  ctx.drawImage(state.video, 0, 0);
+  //ctx.drawImage(state.video, 0, 0);
 
   const img = tf.browser.fromPixels(state.video)
 
@@ -139,28 +151,32 @@ async function renderPrediction() {
     const faceNormal = predictions[0].face2.squeeze()
     console.log(predictions)
 
-    predictions.forEach(prediction => {
+    for (const prediction of predictions){
       const keypoints = modifyKeypoints(prediction.scaledMesh,
-                                        prediction.boundingBox);
+                                        prediction.boundingBox,
+                                        prediction.faceSize);
 
       segmentFace(faceNormal, keypoints, seg_threshold,
                   sampling_points, box_filter_size)
+
       // commented old keypoints render code
-      //for (let i = 0; i < keypoints.length; i++) {
-      //  const x = keypoints[i][0];
-      //  const y = keypoints[i][1];
+      for (let i = 0; i < keypoints.length; i++) {
+        const x = keypoints[i][0];
+        const y = keypoints[i][1];
 
 
-        //canvas2Ctx.beginPath();
-        //canvas2Ctx.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
-        //canvas2Ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
+        ctx.fill();
       //}
     //});
-    // await tf.browser.toPixels(faceNormal, canvas2)
-    img.dispose()
+        }
+      }
+      await tf.browser.toPixels(faceNormal, canvas)
+      img.dispose()
     //faceSmall.dispose()
-    faceNormal.dispose()
-  })
+      faceNormal.dispose()
+
 }
   stats.end();
   requestAnimationFrame(renderPrediction);
