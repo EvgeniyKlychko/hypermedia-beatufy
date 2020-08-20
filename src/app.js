@@ -17,6 +17,8 @@ const sample_size_px = 3
 const seg_threshold = 0.08
 const box_filter_size = 5
 
+window.tf = tf
+
 let model;
 function setupFPS() {
   stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
