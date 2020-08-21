@@ -14,7 +14,7 @@ const ctx = canvas.getContext('2d');
 //const canvas2Ctx = canvas2.getContext('2d')
 const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 84, 2, 1]
 const sample_size_px = 3
-const seg_threshold = tf.tensor1d([0.08])
+const seg_threshold = tf.tensor1d([0.075])
 const box_filter_size = 5
 
 window.tf = tf
@@ -113,8 +113,11 @@ function sample_avg_color(img, color_coords, square_side_px){
     //return sample.mean(axis=(0, 1)).reshape(1, 1, 3)
   }
 
-function boxBlur(img){
-  ////
+function boxBlur(img, kernel_size){
+  // we assume that image has shape Height, Width, Channels
+  const kernel = tf.ones([kernel_size, kernel_size, img.shape[2], img.shape[2]]).div(kernel_size*kernel_size)
+  //tf.conv2d (x, filter, strides, pad, dataFormat?, dilations?, dimRoundingMode?)
+  return tf.conv2d(img, kernel, [1, 1], 'same').clipByValue(0, 1)
 }
 
 function segmentFace(face_img_tensor, keypoints, threshold, sampling_list, blur_kernel_size){
@@ -135,7 +138,9 @@ function segmentFace(face_img_tensor, keypoints, threshold, sampling_list, blur_
 
   })
   mask = mask.clipByValue(0, 1)
-  console.log('mask final', mask)
+  //console.log('mask final', mask)
+  mask = boxBlur(mask, box_filter_size)
+  mask = tf.image.resizeBilinear(mask, [300, 300])
   return mask
 }
 
@@ -164,15 +169,15 @@ async function renderPrediction() {
                                sampling_points, box_filter_size)
 
       // commented old keypoints render code
-      for (let i = 0; i < keypoints.length; i++) {
-        const x = keypoints[i][0];
-        const y = keypoints[i][1];
+      //for (let i = 0; i < keypoints.length; i++) {
+        //const x = keypoints[i][0];
+        //const y = keypoints[i][1];
 
 
-        ctx.beginPath();
-        ctx.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
-        ctx.fill();
-        }
+        //ctx.beginPath();
+        //ctx.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
+        //ctx.fill();
+        //}
         await tf.browser.toPixels(mask, canvas)
         mask.dispose()
       }
