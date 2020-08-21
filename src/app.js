@@ -121,27 +121,31 @@ function boxBlur(mask, kernel_size){
   return tf.conv2d(mask, kernel, [1, 1], 'same').clipByValue(0, 1)
 }
 
-function segmentFace(face_img_tensor, keypoints, threshold, sampling_list, blur_kernel_size){
-  var mask = tf.zeros([face_img_tensor.shape[0], face_img_tensor.shape[1], 1])
+function segmentFace(face_img_tensor, face_img_tensor_small, keypoints,
+                     threshold, sampling_list, blur_kernel_size){
+
+  var mask = tf.zeros([face_img_tensor_small.shape[0],
+                       face_img_tensor_small.shape[1], 1])
   //console.log('mask', mask)
   sampling_list.forEach(sample_keypoint => {
     const coords = keypoints[sample_keypoint]
 
-    const color = sample_avg_color(face_img_tensor, coords, 5)
+    const color = sample_avg_color(face_img_tensor_small, coords, sample_size_px)
 
     // compute L2 norm
     // (tensor, ord='euclidean', axis=None, keepdims=None, name=None) - params
-    const color_dist = tf.norm(face_img_tensor.sub(color),'euclidean', [2], true)
+    const color_dist = tf.norm(face_img_tensor_small.sub(color),'euclidean', [2], true)
 
     const mask_sample = color_dist.less(seg_threshold).cast('int32')
     mask = mask.add(mask_sample)
 
   })
   mask = mask.clipByValue(0, 1)
-  //console.log('mask final', mask)
-  //mask = tf.image.resizeBilinear(mask, [300, 300])
+  mask = tf.image.resizeBilinear(mask, [face_img_tensor.shape[0], face_img_tensor.shape[1]])
   mask = boxBlur(mask, box_filter_size)
+
   face_img_tensor = face_img_tensor.mul(mask.greater(0))
+
   return [face_img_tensor, mask]
 }
 
@@ -184,8 +188,9 @@ async function renderPrediction() {
                                         prediction.boundingBox,
                                         prediction.faceSize);
 
-      var [seg_skin, mask] = segmentFace(faceNormal, keypoints, seg_threshold,
-                                           sampling_points, box_filter_size)
+      var [seg_skin, mask] = segmentFace(faceNormal, faceNormal, keypoints,
+                                         seg_threshold, sampling_points,
+                                         box_filter_size)
 
       // commented keypoints render code
       //for (let i = 0; i < keypoints.length; i++) {
