@@ -1,20 +1,17 @@
 import './assets/index.css';
-  import * as tf from '@tensorflow/tfjs';
-// import * as facemesh from './lib/facemesh';
+import * as tf from '@tensorflow/tfjs';
 import * as facemesh from './lib/facemesh-custom';
 import Stats from 'stats.js';
-import {TRIANGULATION} from './triangulation';
 
 const stats = new Stats();
-const canvas = document.getElementById('output');
-const ctx = canvas.getContext('2d');
 
-const canvasSmall = document.getElementById('output');
-const ctxSmall = canvas.getContext('2d');
-const canvas1 = document.querySelector('#test')
-const canvas2 = document.querySelector('#test2')
-const canvas1Ctx = canvas1.getContext('2d')
-const canvas2Ctx = canvas2.getContext('2d')
+const canvasFinal = document.querySelector('#output');
+const ctxFinal = canvasFinal.getContext('2d');
+const canvasSmall = document.querySelector('#small');
+const ctxSmall = canvasSmall.getContext('2d');
+const canvasHelp = document.querySelector('#help');
+const ctxHelp = canvasHelp.getContext('2d');
+
 const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 233, 84, 2, 1, 53]
 const sample_size_px = 3
 const seg_threshold = tf.tensor1d([0.08])
@@ -213,12 +210,21 @@ async function renderPrediction() {
       const arr = await tf.browser.toPixels(faceNormal)
       const idata = new ImageData(arr, cropSize[0], cropSize[1]);
 
-      canvas2.width = cropSize[0]
-      canvas2.height = cropSize[1]
-      canvas2Ctx.putImageData(idata, 0, 0)
+      canvasHelp.width = cropSize[0]
+      canvasHelp.height = cropSize[1]
+      ctxHelp.putImageData(idata, 0, 0)
 
-      canvas1Ctx.drawImage(state.video, 0, 0);
-      canvas1Ctx.drawImage(canvas2, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
+      ctxFinal.drawImage(state.video, 0, 0);
+      ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
+
+      for (let i = 0; i < keypoints.length; i++) {
+        const x = keypoints[i][0];
+        const y = keypoints[i][1];
+
+        ctxHelp.beginPath();
+        ctxHelp.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
+        ctxHelp.fill();
+      }
       mask.dispose()
       seg_skin.dispose()
     }
@@ -251,15 +257,14 @@ async function renderPredictionFromCanvas() {
     // ctx.drawImage(state.video, 0, 0);
     // point(box.startPoint[0], box.startPoint[1], 'red')
     // point(box.endPoint[0], box.startPoint[1], 'green')
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    canvas.width = cropSize[0]
-    canvas.height = cropSize[1]
-    canvas1Ctx.globalCompositeOperation = 'source-over';
+    ctxSmall.clearRect(0, 0, canvasSmall.width, canvasSmall.height);
+    canvasSmall.width = cropSize[0]
+    canvasSmall.height = cropSize[1]
+    ctxFinal.globalCompositeOperation = 'source-over';
 
-    // canvas1Ctx.drawImage(state.video, 0, 0)
-    ctx.drawImage(state.video, box.startPoint[0], box.startPoint[1], cropSize[0], cropSize[1], 0, 0, cropSize[0], cropSize[1]);
+    ctxSmall.drawImage(state.video, box.startPoint[0], box.startPoint[1], cropSize[0], cropSize[1], 0, 0, cropSize[0], cropSize[1]);
 
-    let faceNormal = tf.browser.fromPixels(canvas).div(255)
+    let faceNormal = tf.browser.fromPixels(canvasSmall).div(255)
     let faceSmall = predictions[0].face.squeeze()
 
     for (const prediction of predictions){
@@ -278,13 +283,13 @@ async function renderPredictionFromCanvas() {
       const idata = new ImageData(arr, cropSize[0], cropSize[1]);
 
 
-      canvas2.width = cropSize[0]
-      canvas2.height = cropSize[1]
-      canvas2Ctx.putImageData(idata, 0, 0)
+      canvasHelp.width = cropSize[0]
+      canvasHelp.height = cropSize[1]
+      ctxHelp.putImageData(idata, 0, 0)
 
 
-      canvas1Ctx.drawImage(state.video, 0, 0);
-      canvas1Ctx.drawImage(canvas2, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
+      ctxFinal.drawImage(state.video, 0, 0);
+      ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
       mask.dispose()
       seg_skin.dispose()
     }
@@ -302,11 +307,8 @@ async function renderPredictionFromCanvas() {
 async function init() {
   await tf.setBackend('webgl');
   await loadVideo();
-  canvas.width = state.video.width;
-  canvas.height = state.video.height;
-
-  canvas1.width = state.video.width;
-  canvas1.height = state.video.height;
+  canvasFinal.width = state.video.width;
+  canvasFinal.height = state.video.height;
 
 
   await loadFacemesh();
