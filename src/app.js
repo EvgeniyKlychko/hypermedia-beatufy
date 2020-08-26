@@ -1,7 +1,8 @@
 import './assets/index.css';
 import * as tf from '@tensorflow/tfjs';
-import * as facemesh from './lib/facemesh-custom';
 import Stats from 'stats.js';
+import * as facemesh from './lib/facemesh-custom';
+import { segmentFace, segmentFaceContour, increase_brightnessv3, convole_gaussian, alpha_blend_simple } from './utils';
 
 const stats = new Stats();
 
@@ -12,9 +13,8 @@ const ctxSmall = canvasSmall.getContext('2d');
 const canvasHelp = document.querySelector('#help');
 const ctxHelp = canvasHelp.getContext('2d');
 
-const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 233, 84, 2, 1, 53]
-const sample_size_px = 3
 const seg_threshold = tf.tensor1d([0.08])
+const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 233, 84, 2, 1, 53]
 const box_filter_size = 5
 const brightness_boost = 0.15
 const gaussian_kernel_single_ch = tf.tensor4d([1.94254715e-07, 9.65682564e-06, 1.00626434e-04, 2.19788338e-04, 1.00626434e-04, 9.65682564e-06, 1.94254715e-07,
@@ -26,8 +26,6 @@ const gaussian_kernel_single_ch = tf.tensor4d([1.94254715e-07, 9.65682564e-06, 1
                                                1.94254715e-07, 9.65682564e-06, 1.00626434e-04, 2.19788338e-04, 1.00626434e-04, 9.65682564e-06, 1.94254715e-07],
   [7, 7, 1, 1])
 const gaussian_kernel = tf.concat([gaussian_kernel_single_ch, gaussian_kernel_single_ch, gaussian_kernel_single_ch], 2)
-
-window.tf = tf
 
 let model;
 function setupFPS() {
@@ -77,20 +75,6 @@ async function loadVideo() {
   state.video.play();
 }
 
-function drawPath(ctx, points, closePath) {
-  const region = new Path2D();
-  region.moveTo(points[0][0], points[0][1]);
-  for (let i = 1; i < points.length; i++) {
-    const point = points[i];
-    region.lineTo(point[0], point[1]);
-  }
-
-  if (closePath) {
-    region.closePath();
-  }
-  ctx.stroke(region);
-}
-
 function point(x, y, color, context){
   context.beginPath();
   context.arc(x, y, 10, 0, 2 * Math.PI, true);
@@ -117,64 +101,6 @@ function modifyKeypoints(keypoints_orig, box, faceSize){
   const new_coords = tf.concat([keypoints_x, keypoints_y, keypoints_z], 1)
 
   return new_coords.arraySync()
-}
-
-function sample_avg_color(img, color_coords, square_side_px){
-    const sample = img.slice([parseInt(color_coords[0]), parseInt(color_coords[1])],
-                             [square_side_px, square_side_px])
-    return sample.mean([0, 1], true)
-  }
-
-function boxBlur(mask, kernel_size){
-  // we assume that mask has shape (Height, Width, Channels)
-  const kernel = tf.ones([kernel_size, kernel_size, mask.shape[2], mask.shape[2]]).div(kernel_size*kernel_size)
-  //tf.conv2d (x, filter, strides, pad, dataFormat?, dilations?, dimRoundingMode?)
-  return tf.conv2d(mask, kernel, [1, 1], 'same').clipByValue(0, 1)
-}
-
-function segmentFace(face_img_tensor, face_img_tensor_small, keypoints,
-                     threshold, sampling_list, blur_kernel_size){
-
-  var mask = tf.zeros([face_img_tensor_small.shape[0],
-                       face_img_tensor_small.shape[1], 1])
-  //console.log('mask', mask)
-  sampling_list.forEach(sample_keypoint => {
-    const coords = keypoints[sample_keypoint]
-
-    const color = sample_avg_color(face_img_tensor_small, coords, sample_size_px)
-
-    // compute L2 norm
-    // (tensor, ord='euclidean', axis=None, keepdims=None, name=None) - params
-    const color_dist = tf.norm(face_img_tensor_small.sub(color),'euclidean', [2], true)
-
-    const mask_sample = color_dist.less(seg_threshold).cast('int32')
-    mask = mask.add(mask_sample)
-
-  })
-  mask = mask.clipByValue(0, 1)
-  mask = tf.image.resizeBilinear(mask, [face_img_tensor.shape[0], face_img_tensor.shape[1]])
-  mask = boxBlur(mask, box_filter_size)
-
-  face_img_tensor = face_img_tensor.mul(mask.greater(0))
-
-  return [face_img_tensor, mask]
-}
-
-function increase_brightnessv3(rgb_img, value){
-  const rChannel = (rgb_img.slice([0, 0, 0], [-1, -1, 1])).add((tf.tensor1d([1]).sub(rgb_img.slice([0, 0, 0], [-1, -1, 1]))).mul(value))
-  const gChannel = (rgb_img.slice([0, 0, 1], [-1, -1, 1])).add((tf.tensor1d([1]).sub(rgb_img.slice([0, 0, 1], [-1, -1, 1]))).mul(value))
-  const bChannel = (rgb_img.slice([0, 0, 2], [-1, -1, 1])).add((tf.tensor1d([1]).sub(rgb_img.slice([0, 0, 2], [-1, -1, 1]))).mul(value))
-  const new_img = tf.concat([rChannel, gChannel, bChannel], 2)
-  return new_img.clipByValue(0, 1)
-}
-
-function convole_gaussian(img, kernel){
-  return tf.depthwiseConv2d(img, kernel, [1, 1], 'same').clipByValue(0, 1)
-}
-
-function alpha_blend_simple(background_rgb, overlay_rgb, aplha_mask){
-  //return (background_rgb * (1 - aplha_mask)) + (overlay_rgb * aplha_mask) - from python
-  return (background_rgb.mul(tf.tensor1d([1]).sub(aplha_mask))).add(overlay_rgb.mul(aplha_mask))
 }
 
 
@@ -314,6 +240,6 @@ async function init() {
   await loadFacemesh();
 
   setupFPS();
-  await renderPrediction();
+  await renderPredictionFromCanvas();
 }
 init();
