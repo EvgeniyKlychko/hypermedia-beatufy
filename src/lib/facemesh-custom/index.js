@@ -174,7 +174,7 @@ class FaceMesh {
         image.dispose();
         if (predictions != null && predictions.length > 0) {
             return Promise.all(predictions.map(async (prediction, i) => {
-                const { coords, scaledCoords, box, flag, face, face2, faceSize } = prediction;
+                const { coords, scaledCoords, box, flag, face, faceNormal, faceSize, boxCPU } = prediction;
                 let tensorsToRead = [flag];
                 if (!returnTensors) {
                     tensorsToRead = tensorsToRead.concat([coords, scaledCoords]);
@@ -192,7 +192,9 @@ class FaceMesh {
                         scaledMesh: scaledCoords,
                         faceSize,
                         face,
-                        face2,
+                        faceNormal,
+                        boxCPU,
+                        box,
                         boundingBox: {
                             topLeft: tf.tensor1d(box.startPoint),
                             bottomRight: tf.tensor1d(box.endPoint)
@@ -210,7 +212,12 @@ class FaceMesh {
                     faceInViewConfidence: flagValue,
                     boundingBox: { topLeft: box.startPoint, bottomRight: box.endPoint },
                     mesh: coordsArr,
-                    scaledMesh: coordsArrScaled
+                    scaledMesh: coordsArrScaled,
+                    faceSize,
+                    face,
+                    faceNormal,
+                    boxCPU,
+                    box
                 };
                 if (flipHorizontal) {
                     annotatedPrediction =

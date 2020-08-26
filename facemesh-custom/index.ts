@@ -45,8 +45,10 @@ interface AnnotatedPredictionValues {
   /** Annotated keypoints. */
   annotations?: {[key: string]: Coords3D};
   face?: any,
-  face2?: any,
-  faceSize?: any
+  faceNormal?: any,
+  faceSize?: any,
+  box?: any,
+  boxCPU?: any
 }
 
 interface AnnotatedPredictionTensors {
@@ -337,7 +339,7 @@ export class FaceMesh {
     // @ts-ignore
     if (predictions != null && predictions.length > 0) {
       return Promise.all(predictions.map(async (prediction: Prediction, i) => {
-        const {coords, scaledCoords, box, flag, face, face2, faceSize} = prediction;
+        const {coords, scaledCoords, box, flag, face, faceNormal, faceSize, boxCPU} = prediction;
         let tensorsToRead: tf.Tensor[] = [flag];
         if (!returnTensors) {
           tensorsToRead = tensorsToRead.concat([coords, scaledCoords]);
@@ -359,7 +361,9 @@ export class FaceMesh {
             scaledMesh: scaledCoords,
             faceSize,
             face,
-            face2,
+            faceNormal,
+            boxCPU,
+            box,
             boundingBox: {
               topLeft: tf.tensor1d(box.startPoint),
               bottomRight: tf.tensor1d(box.endPoint)
@@ -383,7 +387,12 @@ export class FaceMesh {
           faceInViewConfidence: flagValue,
           boundingBox: {topLeft: box.startPoint, bottomRight: box.endPoint},
           mesh: coordsArr,
-          scaledMesh: coordsArrScaled
+          scaledMesh: coordsArrScaled,
+          faceSize,
+          face,
+          faceNormal,
+          boxCPU,
+          box
         };
 
         if (flipHorizontal) {

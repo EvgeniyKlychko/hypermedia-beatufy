@@ -14,8 +14,10 @@ interface AnnotatedPredictionValues {
         [key: string]: Coords3D;
     };
     face?: any;
-    face2?: any;
+    faceNormal?: any;
     faceSize?: any;
+    box?: any;
+    boxCPU?: any;
 }
 interface AnnotatedPredictionTensors {
     faceInViewConfidence: number;

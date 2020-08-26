@@ -164,9 +164,10 @@ class Pipeline {
                 const face = box_1.cutBoxFromImageAndResize(boxCPU, rotatedImage, [
                     this.meshHeight, this.meshWidth
                 ]).div(255);
-                const face2 = box_1.cutBoxFromImageAndResize(boxCPU, input, [
-                    this.meshHeight, this.meshWidth
-                ]).div(255);
+                const width = parseInt(`${boxCPU.endPoint[1] - boxCPU.startPoint[1]}`);
+                const height = parseInt(`${boxCPU.endPoint[0] - boxCPU.startPoint[0]}`);
+                const boxSize = box_1.getBoxSize(box);
+                const faceNormal = box_1.cutBoxFromImageAndResize(boxCPU, input, [192, 192]).div(255);
                 const [, flag, coords] = this.meshDetector.predict(face);
                 const coordsReshaped = tf.reshape(coords, [-1, 3]);
                 const rawCoords = coordsReshaped.arraySync();
@@ -176,12 +177,13 @@ class Pipeline {
                 this.regionsOfInterest[i] = Object.assign({}, landmarksBox, { landmarks: transformedCoords.arraySync() });
                 const prediction = {
                     face,
-                    face2,
-                    faceSize: box_1.getBoxSize(box),
+                    faceNormal,
+                    faceSize: boxSize,
                     coords: coordsReshaped,
                     scaledCoords: transformedCoords,
                     box: landmarksBox,
-                    flag: flag.squeeze()
+                    flag: flag.squeeze(),
+                    boxCPU
                 };
                 return prediction;
             });

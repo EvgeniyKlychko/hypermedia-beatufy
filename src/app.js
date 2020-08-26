@@ -8,11 +8,14 @@ import {TRIANGULATION} from './triangulation';
 const stats = new Stats();
 const canvas = document.getElementById('output');
 const ctx = canvas.getContext('2d');
-//const canvas1 = document.querySelector('#test')
-//const canvas2 = document.querySelector('#test2')
-//const canvas1Ctx = canvas1.getContext('2d')
-//const canvas2Ctx = canvas2.getContext('2d')
-const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 84, 2, 1]
+
+const canvasSmall = document.getElementById('output');
+const ctxSmall = canvas.getContext('2d');
+const canvas1 = document.querySelector('#test')
+const canvas2 = document.querySelector('#test2')
+const canvas1Ctx = canvas1.getContext('2d')
+const canvas2Ctx = canvas2.getContext('2d')
+const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 233, 84, 2, 1, 53]
 const sample_size_px = 3
 const seg_threshold = tf.tensor1d([0.08])
 const box_filter_size = 5
@@ -50,7 +53,13 @@ async function setupCamera() {
 
   const videoElement = document.getElementById('video');
 
-  videoElement.srcObject = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+  videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video:  {
+      width: 640,
+      height: 480
+    }
+  });
 
   return new Promise((resolve) => {
     videoElement.onloadedmetadata = () => {
@@ -85,10 +94,16 @@ function drawPath(ctx, points, closePath) {
   ctx.stroke(region);
 }
 
+function point(x, y, color, context){
+  context.beginPath();
+  context.arc(x, y, 10, 0, 2 * Math.PI, true);
+  context.fillStyle = color;
+  context.fill();
+}
+
 // ---------------------- image processing functions ---------------------------
 
 function modifyKeypoints(keypoints_orig, box, faceSize){
-
   let [ width, height ] = faceSize
   const widthC = 192 / width
   const heightC = 192 / height
@@ -110,7 +125,6 @@ function modifyKeypoints(keypoints_orig, box, faceSize){
 function sample_avg_color(img, color_coords, square_side_px){
     const sample = img.slice([parseInt(color_coords[0]), parseInt(color_coords[1])],
                              [square_side_px, square_side_px])
-    console.log(sample)
     return sample.mean([0, 1], true)
   }
 
@@ -174,49 +188,111 @@ async function renderPrediction() {
   tf.engine().startScope();
   const predictions = await model.getFace(state.video, true);
 
-  //ctx.drawImage(state.video, 0, 0);
-
-  const img = tf.browser.fromPixels(state.video)
-
   if (predictions.length > 0) {
-    //const faceSmall = predictions[0].face.squeeze()
-    var faceNormal = predictions[0].face2.squeeze()
-    console.log(predictions)
+    const box = predictions[0].boxCPU
+    const {faceSize} = predictions[0]
+
+    const cropSizeReal = [parseInt(faceSize[0]), parseInt(faceSize[1])];
+    const cropSize = [192, 192];
+
+    let faceNormal = predictions[0].faceNormal.squeeze()
+    let faceSmall = predictions[0].face.squeeze()
 
     for (const prediction of predictions){
       const keypoints = modifyKeypoints(prediction.scaledMesh,
-                                        prediction.boundingBox,
-                                        prediction.faceSize);
+          prediction.boundingBox,
+          prediction.faceSize);
 
-      var [seg_skin, mask] = segmentFace(faceNormal, faceNormal, keypoints,
-                                         seg_threshold, sampling_points,
-                                         box_filter_size)
+      let [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
+          seg_threshold, sampling_points,
+          box_filter_size)
 
-      // commented keypoints render code
-      //for (let i = 0; i < keypoints.length; i++) {
-        //const x = keypoints[i][0];
-        //const y = keypoints[i][1];
+      seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
+      seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
+      faceNormal = alpha_blend_simple(faceNormal, seg_skin, mask)
+      const arr = await tf.browser.toPixels(faceNormal)
+      const idata = new ImageData(arr, cropSize[0], cropSize[1]);
 
+      canvas2.width = cropSize[0]
+      canvas2.height = cropSize[1]
+      canvas2Ctx.putImageData(idata, 0, 0)
 
-        //ctx.beginPath();
-        //ctx.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
-        //ctx.fill();
-        //}
-        //whitening
-        seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
-        // skin smoothing
-        seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
-        // adding to the original image
-        faceNormal = alpha_blend_simple(faceNormal, seg_skin, mask)
-        await tf.browser.toPixels(faceNormal, canvas)
-        mask.dispose()
-      }
+      canvas1Ctx.drawImage(state.video, 0, 0);
+      canvas1Ctx.drawImage(canvas2, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
+      mask.dispose()
+      seg_skin.dispose()
+    }
 
-      img.dispose()
-      //faceSmall.dispose()
-      faceNormal.dispose()
+    faceSmall.dispose()
+    faceNormal.dispose()
 
+  }
+  stats.end();
+  requestAnimationFrame(renderPrediction);
+  tf.engine().endScope();
 }
+
+
+async function renderPredictionFromCanvas() {
+  stats.begin();
+  tf.engine().startScope();
+  const predictions = await model.getFace(state.video, true);
+
+  // const img = tf.browser.fromPixels(state.video)
+  // const image = img.toFloat().expandDims(0).div(255)
+
+  if (predictions.length > 0) {
+    const box = predictions[0].boxCPU
+    const {faceSize} = predictions[0]
+
+    const cropSizeReal = [parseInt(faceSize[0]), parseInt(faceSize[1])];
+    const cropSize = [192, 192];
+
+    // ctx.drawImage(state.video, 0, 0);
+    // point(box.startPoint[0], box.startPoint[1], 'red')
+    // point(box.endPoint[0], box.startPoint[1], 'green')
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = cropSize[0]
+    canvas.height = cropSize[1]
+    canvas1Ctx.globalCompositeOperation = 'source-over';
+
+    // canvas1Ctx.drawImage(state.video, 0, 0)
+    ctx.drawImage(state.video, box.startPoint[0], box.startPoint[1], cropSize[0], cropSize[1], 0, 0, cropSize[0], cropSize[1]);
+
+    let faceNormal = tf.browser.fromPixels(canvas).div(255)
+    let faceSmall = predictions[0].face.squeeze()
+
+    for (const prediction of predictions){
+      const keypoints = modifyKeypoints(prediction.scaledMesh,
+          prediction.boundingBox,
+          prediction.faceSize);
+
+      let [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
+          seg_threshold, sampling_points,
+          box_filter_size)
+
+      seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
+      seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
+      faceNormal = alpha_blend_simple(faceNormal, seg_skin, mask)
+      const arr = await tf.browser.toPixels(faceNormal)
+      const idata = new ImageData(arr, cropSize[0], cropSize[1]);
+
+
+      canvas2.width = cropSize[0]
+      canvas2.height = cropSize[1]
+      canvas2Ctx.putImageData(idata, 0, 0)
+
+
+      canvas1Ctx.drawImage(state.video, 0, 0);
+      canvas1Ctx.drawImage(canvas2, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
+      mask.dispose()
+      seg_skin.dispose()
+    }
+
+    faceSmall.dispose()
+    faceNormal.dispose()
+
+  }
   stats.end();
   requestAnimationFrame(renderPrediction);
   tf.engine().endScope();
@@ -228,6 +304,9 @@ async function init() {
   await loadVideo();
   canvas.width = state.video.width;
   canvas.height = state.video.height;
+
+  canvas1.width = state.video.width;
+  canvas1.height = state.video.height;
 
 
   await loadFacemesh();
