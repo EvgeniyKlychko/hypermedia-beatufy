@@ -4,6 +4,10 @@ import Stats from 'stats.js';
 import * as facemesh from './lib/facemesh-custom';
 import { segmentFace, segmentFaceContour, increase_brightnessv3, convole_gaussian, alpha_blend_simple } from './utils';
 
+const useCanvas = true
+const useContour = true
+
+
 const stats = new Stats();
 
 const canvasFinal = document.querySelector('#output');
@@ -126,9 +130,16 @@ async function renderPrediction() {
           prediction.boundingBox,
           prediction.faceSize);
 
-      let [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
-          seg_threshold, sampling_points,
-          box_filter_size)
+      let seg_skin;
+      let mask;
+
+      if (useContour) {
+        [seg_skin, mask] = segmentFaceContour(faceNormal, faceSmall, keypoints, box_filter_size)
+      } else {
+        [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
+            seg_threshold, sampling_points,
+            box_filter_size)
+      }
 
       seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
       seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
@@ -197,10 +208,16 @@ async function renderPredictionFromCanvas() {
       const keypoints = modifyKeypoints(prediction.scaledMesh,
           prediction.boundingBox,
           prediction.faceSize);
+      let seg_skin;
+      let mask;
 
-      let [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
-          seg_threshold, sampling_points,
-          box_filter_size)
+      if (useContour) {
+        [seg_skin, mask] = segmentFaceContour(faceNormal, faceSmall, keypoints, box_filter_size)
+      } else {
+        [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
+            seg_threshold, sampling_points,
+            box_filter_size)
+      }
 
       seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
       seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
@@ -240,6 +257,11 @@ async function init() {
   await loadFacemesh();
 
   setupFPS();
-  await renderPredictionFromCanvas();
+  if (useCanvas) {
+    await renderPredictionFromCanvas();
+  } else {
+    await renderPrediction();
+  }
+
 }
 init();
