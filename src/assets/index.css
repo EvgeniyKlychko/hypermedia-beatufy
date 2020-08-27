@@ -1,5 +1,8 @@
 .container {
     margin: auto;
+    margin-top: 60px;
+    position: relative;
+    display: flex;
 }
 
 #video {
@@ -16,6 +19,25 @@
     display: none
 }
 
-/*#help {*/
-/*    display: none*/
-/*}*/
+#help {
+    position: fixed;
+    top: 60px;
+}
+
+.video {
+    display: inline-block;
+    padding: 10px;
+    border: 1px solid black;
+}
+
+.output {
+    display: inline-block;
+    padding: 10px;
+    border: 1px solid black;
+}
+
+.filtered {
+    display: inline-block;
+    padding: 10px;
+    border: 1px solid black;
+}

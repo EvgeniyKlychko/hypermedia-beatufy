@@ -7,16 +7,30 @@
 <body>
 <div class="app">
   <div class="container">
-    <video id="video" playsinline style="
+    <div class="video">
+      <p>Video</p>
+      <video id="video" playsinline style="
           -webkit-transform: scaleX(-1);
           transform: scaleX(-1);
           width: auto;
           height: auto;
           ">
-    </video>
-    <canvas id="output"></canvas>
+      </video>
+    </div>
+
+    <div class="output">
+      <p>Output</p>
+      <canvas id="output"></canvas>
+    </div>
+
     <canvas id="small"></canvas>
     <canvas id="help"></canvas>
+
+    <div class="filtered">
+      <p>Filtered</p>
+      <canvas id="filtered"></canvas>
+    </div>
+
   </div>
 </div>
 <script src="https://docs.opencv.org/4.4.0/opencv.js"></script>
