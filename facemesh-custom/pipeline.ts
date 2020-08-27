@@ -308,8 +308,8 @@ export class Pipeline {
           this.meshHeight, this.meshWidth
         ]).div(255);
 
-        const width = parseInt(`${boxCPU.endPoint[1] - boxCPU.startPoint[1]}`)
-        const height = parseInt(`${boxCPU.endPoint[0] - boxCPU.startPoint[0]}`)
+        // const width = parseInt(`${boxCPU.endPoint[1] - boxCPU.startPoint[1]}`)
+        // const height = parseInt(`${boxCPU.endPoint[0] - boxCPU.startPoint[0]}`)
         const boxSize = getBoxSize(box)
 
         const faceNormal = cutBoxFromImageAndResize(boxCPU, input, [192, 192]).div(255);

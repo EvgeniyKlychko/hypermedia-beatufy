@@ -164,8 +164,6 @@ class Pipeline {
                 const face = box_1.cutBoxFromImageAndResize(boxCPU, rotatedImage, [
                     this.meshHeight, this.meshWidth
                 ]).div(255);
-                const width = parseInt(`${boxCPU.endPoint[1] - boxCPU.startPoint[1]}`);
-                const height = parseInt(`${boxCPU.endPoint[0] - boxCPU.startPoint[0]}`);
                 const boxSize = box_1.getBoxSize(box);
                 const faceNormal = box_1.cutBoxFromImageAndResize(boxCPU, input, [192, 192]).div(255);
                 const [, flag, coords] = this.meshDetector.predict(face);
