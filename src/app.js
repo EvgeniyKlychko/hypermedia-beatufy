@@ -5,10 +5,11 @@ import * as facemesh from './lib/facemesh-custom';
 import { segmentFace, segmentFaceContour, increase_brightnessv3, convole_gaussian, alpha_blend_simple } from './utils';
 import * as imageFilters from './imagefilters';
 import * as webglImageFilter from './webgl-image-filter';
+let toggle = false;
 
 const useCanvas = false
 const useContour = true
-const useFilter = 'webgl' // 'css' 'webgl' 'js'
+const useFilter = '' // 'css' 'webgl' 'js'
 
 const cssFilter = 'brightness(140%) saturate(60%)';
 const jsFilter = {
@@ -17,7 +18,7 @@ const jsFilter = {
 }
 
 const webglFilter = {
-  brightness: 0.8,
+  brightness: 0.35,
   saturation: -0.2
 }
 
@@ -134,96 +135,102 @@ function modifyKeypoints(keypoints_orig, box, faceSize){
 // ---------------------- END image processing functions -------------------------
 
 async function renderPrediction() {
+  toggle = !toggle;
   stats.begin();
-  tf.engine().startScope();
-  const predictions = await model.getFace(state.video, true);
 
-  if (predictions.length > 0) {
-    const box = predictions[0].boxCPU
-    const {faceSize} = predictions[0]
+  if (toggle ) {
+    tf.engine().startScope();
+    const predictions = await model.getFace(state.video, true);
 
-    const cropSizeReal = [parseInt(faceSize[0]), parseInt(faceSize[1])];
-    const cropSize = [192, 192];
+    if (predictions.length > 0) {
+      const box = predictions[0].boxCPU
+      const {faceSize} = predictions[0]
 
-    let faceNormal = predictions[0].faceNormal.squeeze()
-    let faceSmall = predictions[0].face.squeeze()
+      const cropSizeReal = [parseInt(faceSize[0]), parseInt(faceSize[1])];
+      const cropSize = [192, 192];
 
-    for (const prediction of predictions){
-      const keypoints = modifyKeypoints(prediction.scaledMesh,
-          prediction.boundingBox,
-          prediction.faceSize);
+      let faceNormal = predictions[0].faceNormal.squeeze()
+      let faceSmall = predictions[0].face.squeeze()
 
-      let seg_skin;
-      let mask;
+      for (const prediction of predictions){
+        const keypoints = modifyKeypoints(prediction.scaledMesh,
+            prediction.boundingBox,
+            prediction.faceSize);
 
-      if (useContour) {
-        [seg_skin, mask] = segmentFaceContour(faceNormal, faceSmall, keypoints, box_filter_size)
-      } else {
-        [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
-            seg_threshold, sampling_points,
-            box_filter_size)
-      }
+        let seg_skin;
+        let mask;
 
-      if (!useFilter) {
-        seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
-      }
-
-      seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
-      faceNormal = alpha_blend_simple(faceNormal, seg_skin, mask)
-      const arr = await tf.browser.toPixels(faceNormal)
-      const idata = new ImageData(arr, cropSize[0], cropSize[1]);
-
-      canvasHelp.width = cropSize[0]
-      canvasHelp.height = cropSize[1]
-      ctxHelp.putImageData(idata, 0, 0)
-
-      ctxFinal.drawImage(state.video, 0, 0);
-
-      ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
-      console.log('---------------------', canvasFinal)
-      if (useFilter) {
-        if (useFilter === 'js') {
-          const imageData = ctxFinal.getImageData(0, 0, canvasFinal.width, canvasFinal.height);
-          const filtered = ImageFilters.BrightnessContrastPhotoshop(imageData, jsFilter.brightness, jsFilter.saturation);
-          const ctxFilter = canvasFilter.getContext('2d')
-          ctxFilter.putImageData(filtered, 0, 0);
-        } else if (useFilter === 'webgl') {
-          try {
-            // in this case, filteredImage is an existing html canvas
-            const filter = new WebGLImageFilter({ canvas: canvasFilter });
-            filter.addFilter('brightness', webglFilter.brightness)
-            filter.addFilter('saturation', webglFilter.saturation)
-            filter.apply(canvasFinal);
-          } catch( err ) {
-            console.log('-----------error----------', err)
-          }
+        if (useContour) {
+          [seg_skin, mask] = segmentFaceContour(faceNormal, faceSmall, keypoints, box_filter_size)
         } else {
-          const imageData = ctxFinal.getImageData(0, 0, canvasFinal.width, canvasFinal.height);
-          const ctxFilter = canvasFilter.getContext('2d')
-          ctxFilter.filter = cssFilter;
-          ctxFilter.putImageData(imageData, 0, 0);
+          [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
+              seg_threshold, sampling_points,
+              box_filter_size)
         }
+
+        if (!useFilter) {
+          seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
+        }
+
+        seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
+        faceNormal = alpha_blend_simple(faceNormal, seg_skin, mask)
+        const arr = await tf.browser.toPixels(faceNormal)
+        const idata = new ImageData(arr, cropSize[0], cropSize[1]);
+
+        canvasHelp.width = cropSize[0]
+        canvasHelp.height = cropSize[1]
+        ctxHelp.putImageData(idata, 0, 0)
+
+        ctxFinal.drawImage(state.video, 0, 0);
+        ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
+
+
+        if (useFilter) {
+          if (useFilter === 'js') {
+            const imageData = ctxFinal.getImageData(0, 0, canvasFinal.width, canvasFinal.height);
+            const filtered = ImageFilters.BrightnessContrastPhotoshop(imageData, jsFilter.brightness, jsFilter.saturation);
+            const ctxFilter = canvasFilter.getContext('2d')
+            ctxFilter.putImageData(filtered, 0, 0);
+          } else if (useFilter === 'webgl') {
+            try {
+              // in this case, filteredImage is an existing html canvas
+              const filter = new WebGLImageFilter({ canvas: canvasFilter });
+              filter.addFilter('brightness', webglFilter.brightness)
+              filter.addFilter('saturation', webglFilter.saturation)
+              filter.apply(canvasFinal);
+            } catch( err ) {
+              console.log('-----------error----------', err)
+            }
+          } else {
+            const imageData = ctxFinal.getImageData(0, 0, canvasFinal.width, canvasFinal.height);
+            const ctxFilter = canvasFilter.getContext('2d')
+            ctxFilter.filter = cssFilter;
+            ctxFilter.putImageData(imageData, 0, 0);
+          }
+        }
+
+        for (let i = 0; i < keypoints.length; i++) {
+          const x = keypoints[i][0];
+          const y = keypoints[i][1];
+
+          ctxHelp.beginPath();
+          ctxHelp.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
+          ctxHelp.fill();
+        }
+        mask.dispose()
+        seg_skin.dispose()
       }
 
-      for (let i = 0; i < keypoints.length; i++) {
-        const x = keypoints[i][0];
-        const y = keypoints[i][1];
+      faceSmall.dispose()
+      faceNormal.dispose()
 
-        ctxHelp.beginPath();
-        ctxHelp.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
-        ctxHelp.fill();
-      }
-      mask.dispose()
-      seg_skin.dispose()
     }
 
-    faceSmall.dispose()
-    faceNormal.dispose()
-
+    tf.engine().endScope();
   }
+
   stats.end();
   requestAnimationFrame(renderPrediction);
-  tf.engine().endScope();
 }
 
 
