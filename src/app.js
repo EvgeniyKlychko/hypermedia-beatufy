@@ -17,7 +17,7 @@ const jsFilter = {
 }
 
 const webglFilter = {
-  brightness: 0.8,
+  brightness: 0.2,
   saturation: -0.2
 }
 
@@ -44,6 +44,31 @@ const seg_threshold = tf.tensor1d([0.08])
 const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 233, 84, 2, 1, 53]
 const box_filter_size = 5
 const brightness_boost = 0.15
+
+const blur_sigma = 0.8
+const truncation_thresh_kernel = 4.0
+
+function gaussian_kernel2d(sigma, truncate_sd){
+  let radius = parseInt(truncate_sd * sigma + 0.5)
+  // Computes a 1-D zero order Gaussian convolution kernel.
+  // sigma2 = sigma * sigma
+  // x = np.arange(-radius, radius+1)
+  // phi_x = np.exp(-0.5 / sigma2 * x ** 2)
+  // phi_x = phi_x / phi_x.sum()
+  let sigma2 = tf.tensor1d([sigma * sigma])
+  let x = tf.range(-radius, radius+1)
+  let phi_x = ((tf.tensor1d([-0.5]).div(sigma2)).mul(x.pow(2))).exp()
+  phi_x = phi_x.div(phi_x.sum())
+
+  let weights = tf.reverse(phi_x)
+  // return outer product of 1d convolutional kernel to perform 2d conv
+  let kernel2d = (weights.reshape([1, -1])).mul(weights.reshape([-1, 1]))
+  return kernel2d.reshape([kernel2d.shape[0], kernel2d.shape[1], 1, 1])
+}
+
+const gaussian_kernel_single_ch = gaussian_kernel2d(blur_sigma, truncation_thresh_kernel)
+
+/*
 const gaussian_kernel_single_ch = tf.tensor4d([1.94254715e-07, 9.65682564e-06, 1.00626434e-04, 2.19788338e-04, 1.00626434e-04, 9.65682564e-06, 1.94254715e-07,
                                                9.65682564e-06, 4.80061867e-04, 5.00235953e-03, 1.09261577e-02, 5.00235953e-03, 4.80061867e-04, 9.65682564e-06,
                                                1.00626434e-04, 5.00235953e-03,  5.21257832e-02, 1.13853178e-01, 5.21257832e-02, 5.00235953e-03,1.00626434e-04,
@@ -52,6 +77,8 @@ const gaussian_kernel_single_ch = tf.tensor4d([1.94254715e-07, 9.65682564e-06, 1
                                                9.65682564e-06, 4.80061867e-04, 5.00235953e-03, 1.09261577e-02, 5.00235953e-03, 4.80061867e-04, 9.65682564e-06,
                                                1.94254715e-07, 9.65682564e-06, 1.00626434e-04, 2.19788338e-04, 1.00626434e-04, 9.65682564e-06, 1.94254715e-07],
   [7, 7, 1, 1])
+*/
+
 const gaussian_kernel = tf.concat([gaussian_kernel_single_ch, gaussian_kernel_single_ch, gaussian_kernel_single_ch], 2)
 
 let model;
