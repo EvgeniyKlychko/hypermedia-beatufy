@@ -7,9 +7,10 @@ import * as imageFilters from './imagefilters';
 import * as webglImageFilter from './webgl-image-filter';
 let toggle = false;
 
-const useCanvas = false
-const useContour = true
-const useFilter = '' // 'css' 'webgl' 'js'
+let useCanvas = false
+let useContour = true
+let useFilter = 'webgl' // 'css' 'webgl' 'js'
+let skipFrame = true
 
 const cssFilter = 'brightness(140%) saturate(60%)';
 const jsFilter = {
@@ -36,7 +37,73 @@ const filteredWrapper = document.querySelector('.filtered');
 
 outputWrapper.style.display = 'none'
 
-const canvasFilter = document.querySelector('#filtered');
+const contourSetting = document.querySelector('#contour');
+const colorSetting = document.querySelector('#color');
+const filterSetting = document.querySelector('#filter');
+const skipFrameSetting = document.querySelector('#skip');
+
+if (useContour && !useFilter) {
+  contourSetting.checked = true;
+}
+
+if (!useContour && !useFilter) {
+  colorSetting.checked = true;
+}
+
+if (useFilter) {
+  filterSetting.checked = true;
+}
+
+if (skipFrame) {
+  skipFrameSetting.checked = true;
+}
+
+contourSetting.addEventListener('change', () => {
+  canvasFilter.remove();
+  canvasFilter = document.createElement('canvas')
+  canvasFilter.id = 'filtered'
+  canvasFilter.width = state.video.width;
+  canvasFilter.height = state.video.height;
+  filteredWrapper.appendChild(canvasFilter)
+
+  useContour = true
+  useFilter = ''
+})
+
+filterSetting.addEventListener('change', () => {
+  canvasFilter.remove();
+  canvasFilter = document.createElement('canvas')
+  canvasFilter.id = 'filtered'
+  canvasFilter.width = state.video.width;
+  canvasFilter.height = state.video.height;
+  filteredWrapper.appendChild(canvasFilter)
+
+  useContour = true
+  useFilter = 'webgl'
+})
+
+colorSetting.addEventListener('change', () => {
+  canvasFilter.remove();
+  canvasFilter = document.createElement('canvas')
+  canvasFilter.id = 'filtered'
+  canvasFilter.width = state.video.width;
+  canvasFilter.height = state.video.height;
+  filteredWrapper.appendChild(canvasFilter)
+
+  useContour = false
+  useFilter = ''
+})
+
+skipFrameSetting.addEventListener('change', (e) => {
+  const isChecked = e.target.checked
+  if (isChecked) {
+    skipFrame = true
+  } else {
+    skipFrame = false
+  }
+})
+
+let canvasFilter = document.querySelector('#filtered');
 const seg_threshold = tf.tensor1d([0.08])
 const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 233, 84, 2, 1, 53]
 const box_filter_size = 5
@@ -161,7 +228,16 @@ async function renderPrediction() {
   toggle = !toggle;
   stats.begin();
 
-  if (toggle) {
+  if (skipFrame) {
+    if (toggle) {
+     await doRender()
+    }
+  } else {
+    await doRender()
+  }
+
+
+  async function doRender() {
     tf.engine().startScope();
     ctxFinal.drawImage(state.video, 0, 0);
     const predictions = await model.getFace(state.video, true);

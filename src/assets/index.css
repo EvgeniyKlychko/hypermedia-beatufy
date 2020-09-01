@@ -1,6 +1,6 @@
 .container {
     margin: auto;
-    margin-top: 60px;
+    margin-top: 150px;
     position: relative;
     display: flex;
 }
@@ -21,7 +21,7 @@
 
 #help {
     position: fixed;
-    top: 60px;
+    top: 150px;
 }
 
 .video {
@@ -40,4 +40,10 @@
     display: inline-block;
     padding: 10px;
     border: 1px solid black;
+}
+
+.settings {
+    position: absolute;
+    right: 20px;
+    top: 20px;
 }
