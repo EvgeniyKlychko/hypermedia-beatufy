@@ -34,11 +34,7 @@ const ctxHelp = canvasHelp.getContext('2d');
 const outputWrapper = document.querySelector('.output');
 const filteredWrapper = document.querySelector('.filtered');
 
-if (useFilter) {
-  outputWrapper.style.display = 'none'
-} else {
-  filteredWrapper.style.display = 'none'
-}
+outputWrapper.style.display = 'none'
 
 const canvasFilter = document.querySelector('#filtered');
 const seg_threshold = tf.tensor1d([0.08])
@@ -165,8 +161,9 @@ async function renderPrediction() {
   toggle = !toggle;
   stats.begin();
 
-  if (toggle ) {
+  if (toggle) {
     tf.engine().startScope();
+    ctxFinal.drawImage(state.video, 0, 0);
     const predictions = await model.getFace(state.video, true);
 
     if (predictions.length > 0) {
@@ -208,9 +205,15 @@ async function renderPrediction() {
         canvasHelp.height = cropSize[1]
         ctxHelp.putImageData(idata, 0, 0)
 
-        ctxFinal.drawImage(state.video, 0, 0);
         ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
 
+        if (!useFilter) {
+          const imageData = ctxFinal.getImageData(0, 0, canvasFinal.width, canvasFinal.height);
+          const ctxFilter = canvasFilter.getContext('2d');
+          ctxFilter.putImageData(imageData, 0, 0);
+        } else {
+
+        }
 
         if (useFilter) {
           if (useFilter === 'js') {
