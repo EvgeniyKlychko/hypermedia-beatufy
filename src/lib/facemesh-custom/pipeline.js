@@ -165,7 +165,7 @@ class Pipeline {
                     this.meshHeight, this.meshWidth
                 ]).div(255);
                 const boxSize = box_1.getBoxSize(box);
-                const faceNormal = box_1.cutBoxFromImageAndResize(boxCPU, input, [192, 192]).div(255);
+                const faceNormal = box_1.cutBoxFromImageAndResize(boxCPU, input, [300, 300]).div(255);
                 const [, flag, coords] = this.meshDetector.predict(face);
                 const coordsReshaped = tf.reshape(coords, [-1, 3]);
                 const rawCoords = coordsReshaped.arraySync();

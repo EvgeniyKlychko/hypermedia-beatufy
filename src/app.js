@@ -106,10 +106,10 @@ skipFrameSetting.addEventListener('change', (e) => {
 let canvasFilter = document.querySelector('#filtered');
 const seg_threshold = tf.tensor1d([0.08])
 const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 233, 84, 2, 1, 53]
-const box_filter_size = 5
+const box_filter_size = 10
 const brightness_boost = 0.15
 
-const blur_sigma = 0.8
+const blur_sigma = 0.6
 const truncation_thresh_kernel = 4.0
 
 function gaussian_kernel2d(sigma, truncate_sd){
@@ -247,7 +247,7 @@ async function renderPrediction() {
       const {faceSize} = predictions[0]
 
       const cropSizeReal = [parseInt(faceSize[0]), parseInt(faceSize[1])];
-      const cropSize = [192, 192];
+      const cropSize = [300, 300];
 
       let faceNormal = predictions[0].faceNormal.squeeze()
       let faceSmall = predictions[0].face.squeeze()
