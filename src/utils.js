@@ -128,3 +128,100 @@ export function alpha_blend_simple(background_rgb, overlay_rgb, aplha_mask){
   //return (background_rgb * (1 - aplha_mask)) + (overlay_rgb * aplha_mask) - from python
   return (background_rgb.mul(tf.tensor1d([1]).sub(aplha_mask))).add(overlay_rgb.mul(aplha_mask))
 }
+
+
+//// ------- filters v2 (high pass - low pass)
+/*
+# source https://stackoverflow.com/questions/6094957/high-pass-filter-for-image-processing-in-python-by-using-scipy-numpy
+def simple_lowpass(image):
+    kernel = np.array([[-1, -1, -1, -1, -1],
+                       [-1,  1,  2,  1, -1],
+                       [-1,  2,  4,  2, -1],
+                       [-1,  1,  2,  1, -1],
+                       [-1, -1, -1, -1, -1]])
+    # kernel = kernel[None, :, :]
+    highpass = ndimage.convolve(color.rgb2gray(image), kernel)
+    return highpass
+
+def normalize_0_1(image):
+    image = image - image.min()
+    return image/(image.max())
+
+# aplha blend source https://gist.github.com/pthom/5155d319a7957a38aeb2ac9e54cc0999
+def alpha_blend_simple(background_rgb, overlay_rgb, aplha_mask):
+    return (background_rgb * (1 - aplha_mask)) + (overlay_rgb * aplha_mask)
+
+def smooth(image, sigma):
+    return gaussian(image, sigma=sigma)
+
+def low_pass_high_pass_v1(image, highp_thresh=0.4, smooth_sig=3):
+    edge_mask = simple_lowpass(image)
+    # edge_mask = smooth(edge_mask, 1.2)
+
+    edge_mask = normalize_0_1(edge_mask)[:, :, None]
+    edge_mask_thresh = edge_mask < highp_thresh
+    out_mask = cv2.blur(edge_mask_thresh.astype(np.float32), (5, 5))[:, :, None]
+
+    high_freq = image * edge_mask_thresh
+    low_freq_smoothed = smooth(image, smooth_sig)
+
+    out = alpha_blend_simple(low_freq_smoothed, image, out_mask)
+
+    return (edge_mask_thresh, out_mask, high_freq, low_freq_smoothed, out)
+
+*/
+
+function gaussian_kernel2d(sigma, truncate_sd){
+  let radius = parseInt(truncate_sd * sigma + 0.5)
+  // Computes a 1-D zero order Gaussian convolution kernel.
+  // sigma2 = sigma * sigma
+  // x = np.arange(-radius, radius+1)
+  // phi_x = np.exp(-0.5 / sigma2 * x ** 2)
+  // phi_x = phi_x / phi_x.sum()
+  let sigma2 = tf.tensor1d([sigma * sigma])
+  let x = tf.range(-radius, radius+1)
+  let phi_x = ((tf.tensor1d([-0.5]).div(sigma2)).mul(x.pow(2))).exp()
+  phi_x = phi_x.div(phi_x.sum())
+
+  let weights = tf.reverse(phi_x)
+  // return outer product of 1d convolutional kernel to perform 2d conv
+  let kernel2d = (weights.reshape([1, -1])).mul(weights.reshape([-1, 1]))
+  return kernel2d.reshape([kernel2d.shape[0], kernel2d.shape[1], 1, 1])
+}
+
+function simpleLowpass(image){
+  const kernel = tf.tensor4d([-1, -1, -1, -1, -1,
+                              -1,  1,  2,  1, -1,
+                              -1,  2,  4,  2, -1,
+                              -1,  1,  2,  1, -1,
+                              -1, -1, -1, -1, -1],
+                              [5, 5, 1, 1])
+
+  const kernel_3d = tf.concat([kernel, kernel, kernel], 2)
+  return tf.depthwiseConv2d(image, kernel_3d, [1, 1], 'same')
+}
+
+function normalize_0_1(image){
+  image = image.sub(image.min())
+  return image.div(image.max())
+}
+
+export function lowPassHighPass(image, high_pass_threshold, blur_sigma, truncation_thresh_kernel){
+  const gaussian_kernel_single_ch = gaussian_kernel2d(blur_sigma, truncation_thresh_kernel)
+
+  const gaussian_kernel = tf.concat([gaussian_kernel_single_ch,
+                                     gaussian_kernel_single_ch,
+                                     gaussian_kernel_single_ch], 2)
+
+  let edge_mask = simpleLowpass(image)
+  edge_mask = normalize_0_1(edge_mask)
+
+  const edge_mask_thresh = edge_mask.less(tf.tensor1d([high_pass_threshold]))
+  const out_mask = boxBlur(edge_mask_thresh, 5)
+
+  const high_freq = image.mul(edge_mask_thresh)
+  const low_freq_smoothed = convole_gaussian(image, gaussian_kernel)
+
+  const out = alpha_blend_simple(low_freq_smoothed, image, out_mask)
+  return out
+}

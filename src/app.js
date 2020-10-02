@@ -2,10 +2,11 @@ import './assets/index.css';
 import * as tf from '@tensorflow/tfjs';
 import Stats from 'stats.js';
 import * as facemesh from './lib/facemesh-custom';
-import { segmentFace, segmentFaceContour, increase_brightnessv3, convole_gaussian, alpha_blend_simple } from './utils';
+import { segmentFace, segmentFaceContour, increase_brightnessv3, convole_gaussian, alpha_blend_simple, lowPassHighPass } from './utils';
 import * as imageFilters from './imagefilters';
 import * as webglImageFilter from './webgl-image-filter';
 let toggle = false;
+window.tf = tf
 
 let useCanvas = false
 let useContour = true
@@ -109,8 +110,11 @@ const sampling_points = [9, 18, 50, 5, 376, 187, 83, 164, 229, 299, 233, 84, 2, 
 const box_filter_size = 10
 const brightness_boost = 0.15
 
-const blur_sigma = 0.6
+const blur_sigma = 1.2
 const truncation_thresh_kernel = 4.0
+
+const high_pass_threshold = 0.45
+
 
 function gaussian_kernel2d(sigma, truncate_sd){
   let radius = parseInt(truncate_sd * sigma + 0.5)
@@ -130,7 +134,7 @@ function gaussian_kernel2d(sigma, truncate_sd){
   return kernel2d.reshape([kernel2d.shape[0], kernel2d.shape[1], 1, 1])
 }
 
-const gaussian_kernel_single_ch = gaussian_kernel2d(blur_sigma, truncation_thresh_kernel)
+//const gaussian_kernel_single_ch = gaussian_kernel2d(blur_sigma, truncation_thresh_kernel)
 
 /*
 const gaussian_kernel_single_ch = tf.tensor4d([1.94254715e-07, 9.65682564e-06, 1.00626434e-04, 2.19788338e-04, 1.00626434e-04, 9.65682564e-06, 1.94254715e-07,
@@ -143,7 +147,7 @@ const gaussian_kernel_single_ch = tf.tensor4d([1.94254715e-07, 9.65682564e-06, 1
   [7, 7, 1, 1])
 */
 
-const gaussian_kernel = tf.concat([gaussian_kernel_single_ch, gaussian_kernel_single_ch, gaussian_kernel_single_ch], 2)
+//const gaussian_kernel = tf.concat([gaussian_kernel_single_ch, gaussian_kernel_single_ch, gaussian_kernel_single_ch], 2)
 
 let model;
 function setupFPS() {
@@ -169,8 +173,8 @@ async function setupCamera() {
   videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
     audio: false,
     video:  {
-      width: 640,
-      height: 480
+      width: 1280,
+      height: 720
     }
   });
 
@@ -253,27 +257,29 @@ async function renderPrediction() {
       let faceSmall = predictions[0].face.squeeze()
 
       for (const prediction of predictions){
-        const keypoints = modifyKeypoints(prediction.scaledMesh,
-            prediction.boundingBox,
-            prediction.faceSize);
+        //const keypoints = modifyKeypoints(prediction.scaledMesh,
+        //    prediction.boundingBox,
+        //    prediction.faceSize);
 
-        let seg_skin;
-        let mask;
+        //let seg_skin;
+        //let mask;
 
-        if (useContour) {
-          [seg_skin, mask] = segmentFaceContour(faceNormal, faceSmall, keypoints, box_filter_size)
-        } else {
-          [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
-              seg_threshold, sampling_points,
-              box_filter_size)
-        }
+        //if (useContour) {
+        //  [seg_skin, mask] = segmentFaceContour(faceNormal, faceSmall, keypoints, box_filter_size)
+        //} else {
+        //  [seg_skin, mask] = segmentFace(faceNormal, faceSmall, keypoints,
+        //      seg_threshold, sampling_points,
+        //     box_filter_size)
+        //}
 
-        if (!useFilter) {
-          seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
-        }
+        //if (!useFilter) {
+        //  seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
+        //}
 
-        seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
-        faceNormal = alpha_blend_simple(faceNormal, seg_skin, mask)
+        //seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
+        //faceNormal = alpha_blend_simple(faceNormal, seg_skin, mask)
+
+        faceNormal = lowPassHighPass(faceNormal, high_pass_threshold, blur_sigma, truncation_thresh_kernel)
         const arr = await tf.browser.toPixels(faceNormal)
         const idata = new ImageData(arr, cropSize[0], cropSize[1]);
 
@@ -315,16 +321,16 @@ async function renderPrediction() {
           }
         }
 
-        for (let i = 0; i < keypoints.length; i++) {
-          const x = keypoints[i][0];
-          const y = keypoints[i][1];
+        ///for (let i = 0; i < keypoints.length; i++) {
+        //  const x = keypoints[i][0];
+        ///  const y = keypoints[i][1];
 
-          ctxHelp.beginPath();
-          ctxHelp.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
-          ctxHelp.fill();
-        }
-        mask.dispose()
-        seg_skin.dispose()
+        //  ctxHelp.beginPath();
+        //  ctxHelp.arc(x, y, 1 /* radius */, 0, 2 * Math.PI);
+        //  ctxHelp.fill();
+        //}
+        //mask.dispose()
+        //seg_skin.dispose()
       }
 
       faceSmall.dispose()
@@ -372,6 +378,7 @@ async function renderPredictionFromCanvas() {
       const keypoints = modifyKeypoints(prediction.scaledMesh,
           prediction.boundingBox,
           prediction.faceSize);
+
       let seg_skin;
       let mask;
 
@@ -385,10 +392,11 @@ async function renderPredictionFromCanvas() {
 
       if (!useFilter) {
         seg_skin = increase_brightnessv3(seg_skin, brightness_boost)
-      }
+       }
 
       seg_skin = convole_gaussian(seg_skin, gaussian_kernel)
       faceNormal = alpha_blend_simple(faceNormal, seg_skin, mask)
+
       const arr = await tf.browser.toPixels(faceNormal)
       const idata = new ImageData(arr, cropSize[0], cropSize[1]);
 
