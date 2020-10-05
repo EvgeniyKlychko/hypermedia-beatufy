@@ -2,8 +2,7 @@ import './assets/index.css';
 import * as tf from '@tensorflow/tfjs';
 import Stats from 'stats.js';
 import * as facemesh from './lib/facemesh-custom';
-import {bilateral_filter, lowPassHighPass} from './utils';
-import * as imageFilters from './imagefilters';
+import {bilateral_filter} from './utils';
 
 // Sliders --------------------------------------------------------------------------->
 let sigmaSpace = 1;
@@ -23,11 +22,6 @@ let toggle = false;
 window.tf = tf
 
 let skipFrame = true
-
-const jsFilter = {
-  brightness: 20,
-  saturation: -20
-}
 
 const stats = new Stats();
 
@@ -124,7 +118,6 @@ async function renderPrediction() {
       let faceSmall = predictions[0].face.squeeze()
 
       for (const prediction of predictions){
-        faceNormal = lowPassHighPass(faceNormal, high_pass_threshold, blur_sigma, truncation_thresh_kernel)
         const arr = await tf.browser.toPixels(faceNormal)
         const idata = new ImageData(arr, cropSize[0], cropSize[1]);
 
@@ -137,9 +130,8 @@ async function renderPrediction() {
         ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
 
         const imageData = ctxFinal.getImageData(0, 0, canvasFinal.width, canvasFinal.height);
-        const filtered = ImageFilters.BrightnessContrastPhotoshop(imageData, jsFilter.brightness, jsFilter.saturation);
         const ctxFilter = canvasFilter.getContext('2d')
-        ctxFilter.putImageData(filtered, 0, 0);
+        ctxFilter.putImageData(imageData, 0, 0);
       }
 
       faceSmall.dispose()

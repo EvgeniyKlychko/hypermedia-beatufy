@@ -173,12 +173,14 @@ class Pipeline {
                 const transformedCoords = tf.tensor2d(transformedCoordsData);
                 const landmarksBox = this.calculateLandmarksBoundingBox(transformedCoordsData);
                 this.regionsOfInterest[i] = Object.assign({}, landmarksBox, { landmarks: transformedCoords.arraySync() });
+
+
                 const prediction = {
                     face,
                     faceNormal,
                     faceSize: boxSize,
-                    coords: coordsReshaped,
-                    scaledCoords: transformedCoords,
+                    // coords: coordsReshaped,
+                    // scaledCoords: transformedCoords,
                     box: landmarksBox,
                     flag: flag.squeeze(),
                     boxCPU
