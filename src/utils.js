@@ -235,3 +235,52 @@ export const bilateral_filter = (sigmaSpace = 9) => {
   cv.imshow('help', dst);
   src.delete(); dst.delete();
 }
+
+export const bilateral_filter_gauss = () => {
+  let smooth_rate = 0.7
+  let gauss_kernel_size = 3
+
+  let src = cv.imread('help');
+
+  let smooth_rate_mat = new cv.Mat(src.rows, src.cols, cv.CV_32FC3, [smooth_rate, smooth_rate, smooth_rate, smooth_rate])
+  let smooth_rate_rev_mat = new cv.Mat(src.rows, src.cols, cv.CV_32FC3, [1 - smooth_rate, 1 - smooth_rate, 1 - smooth_rate, 1 - smooth_rate])
+
+  let dst_1 = new cv.Mat();
+  let dst_2 = new cv.Mat();
+  let mul_1 = new cv.Mat();
+  let mul_2 = new cv.Mat();
+  let add_1 = new cv.Mat();
+  //let thresh = new cv.Mat();
+  let out = new cv.Mat();
+
+  cv.cvtColor(src, src, cv.COLOR_RGBA2RGB, 0);
+  // You can try more different parameters
+  cv.bilateralFilter(src, dst_1, 8, 75, 75, cv.BORDER_DEFAULT);
+  cv.GaussianBlur(dst_1, dst_2, {width: gauss_kernel_size, height: gauss_kernel_size}, 0, 0, cv.BORDER_DEFAULT)
+
+  src.convertTo(src, cv.CV_32FC3)
+  dst_2.convertTo(dst_2, cv.CV_32FC3)
+
+  // original equation
+  // im_smooth = np.minimum(smooth_rate * im_ga + (1 - smooth_rate) * im_bgr, 255).astype('uint8')
+
+  cv.multiply(smooth_rate_mat, dst_2, mul_1);
+  console.log('running')
+
+  cv.multiply(smooth_rate_rev_mat, src, mul_2);
+  cv.add(mul_1, mul_2, add_1);
+  cv.threshold(add_1, add_1, 255, 255, cv.THRESH_TRUNC)
+  add_1.convertTo(out, cv.CV_8UC3)
+
+  cv.imshow('help', out);
+
+  src.delete();
+  dst_1.delete();
+  dst_2.delete();
+  smooth_rate_mat.delete();
+  smooth_rate_rev_mat.delete();
+  mul_1.delete();
+  mul_2.delete();
+  add_1.delete();
+  out.delete();
+}

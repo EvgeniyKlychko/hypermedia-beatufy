@@ -2,7 +2,7 @@ import './assets/index.css';
 import * as tf from '@tensorflow/tfjs';
 import Stats from 'stats.js';
 import * as facemesh from './lib/facemesh-custom';
-import {bilateral_filter} from './utils';
+import {bilateral_filter, bilateral_filter_gauss} from './utils';
 
 // Sliders --------------------------------------------------------------------------->
 let sigmaSpace = 1;
@@ -126,6 +126,7 @@ async function renderPrediction() {
         ctxHelp.putImageData(idata, 0, 0)
 
         bilateral_filter(sigmaSpace)
+        // bilateral_filter_gauss()
 
         ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
 
