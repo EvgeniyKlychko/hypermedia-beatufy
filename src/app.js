@@ -13,9 +13,11 @@ sigmaSpaceText.innerHTML = sigmaSpace
 sigmaSpaceEl.defaultValue = 0
 
 sigmaSpaceEl.addEventListener('input', (e) => {
-  sigmaSpace = +e.target.value + 1
+  sigmaSpace = +e.target.value
   sigmaSpaceText.innerHTML = sigmaSpace.toString()
 })
+
+// ------------------------------------------------------------------------------------>
 
 let toggle = false;
 window.tf = tf
