@@ -225,3 +225,13 @@ export function lowPassHighPass(image, high_pass_threshold, blur_sigma, truncati
   const out = alpha_blend_simple(low_freq_smoothed, image, out_mask)
   return out
 }
+
+export const bilateral_filter = (sigmaSpace = 9) => {
+  let src = cv.imread('help');
+  let dst = new cv.Mat();
+  cv.cvtColor(src, src, cv.COLOR_RGBA2RGB, 0);
+// You can try more different parameters
+  cv.bilateralFilter(src, dst, sigmaSpace, 75, 75, cv.BORDER_DEFAULT);
+  cv.imshow('help', dst);
+  src.delete(); dst.delete();
+}

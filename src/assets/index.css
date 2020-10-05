@@ -47,3 +47,29 @@
     right: 20px;
     top: 20px;
 }
+
+/* sliders ---------------------*/
+.sliders-container {
+  margin: 0 0 0 10%;
+  max-width: 500px;
+}
+
+.slider-container {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+}
+
+label {
+  font: 1rem 'Fira Sans', sans-serif;
+}
+
+input {
+  margin: .4rem;
+}
+
+#high-pass-threshold-text,
+#blur-sigma-text{
+  display: inline;
+}
+
