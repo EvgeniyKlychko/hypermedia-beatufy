@@ -2,103 +2,79 @@ import './assets/index.css';
 import * as tf from '@tensorflow/tfjs';
 import Stats from 'stats.js';
 import * as facemesh from './lib/facemesh-custom';
-import {
-  bilateral_filter_gauss,
-  gaussian_blurring,
-  median_blurring,
-  bilateral_filtering
-} from './utils';
+import { bilateral_filter_mix, bilateral_filtering } from './utils';
 import * as dat from 'dat.gui';
 
-
 // GUI Settings ----------------------------------------------------------------------->
-const gui = new dat.GUI({width: 410});
-const folderGaussianBlurring = gui.addFolder('Gaussian Blurring');
-const folderMedianBlurring = gui.addFolder('Median Blurring');
-const folderBilateralFiltering = gui.addFolder('Bilateral Filtering');
-const folderMixBG = gui.addFolder('Bilateral Filtering with Gaussian Blurring');
+const gui = new dat.GUI({ width: 410 });
+const folderBilateralFiltering = gui.addFolder('Bilateral Filter with presets');
+const folderBilateralFilterMix = gui.addFolder(
+  'Mixes (the original image with bilateral filter) with presets'
+);
+const folderManualBilateralFiltering = gui.addFolder('Bilateral Filtering with manual regulation');
 
-let openFolderName = 'folderGaussianBlurring';
-folderGaussianBlurring.open()
+let openFolderName = 'folderBilateralFiltering';
+folderBilateralFiltering.open();
 
-folderGaussianBlurring.domElement.addEventListener('click', () => {
-  openFolderName = 'folderGaussianBlurring'
-  folderMedianBlurring.close()
-  folderBilateralFiltering.close()
-  folderMixBG.close()
-})
-folderMedianBlurring.domElement.addEventListener('click', () => {
-  openFolderName = 'folderMedianBlurring'
-  folderGaussianBlurring.close()
-  folderBilateralFiltering.close()
-  folderMixBG.close()
-})
-folderBilateralFiltering.domElement.addEventListener('click', () => {
-  openFolderName = 'folderBilateralFiltering'
-  folderGaussianBlurring.close()
-  folderMedianBlurring.close()
-  folderMixBG.close()
-})
-folderMixBG.domElement.addEventListener('click', () => {
-  openFolderName = 'folderMixBG'
-  folderGaussianBlurring.close()
-  folderMedianBlurring.close()
-  folderBilateralFiltering.close()
-})
+const presets = {
+  'weak smoothing': 4,
+  'medium smoothing': 10,
+  'strong smoothing': 15,
+};
 
 const settingsParams = {
-  gaussianKernelSize: 1,
-  medianKernelSize: 1,
-  bilateralDiameter: 1,
-  bilateralSigma: 1,
-  mixBGDiameter: 1,
-  mixBGSigma: 1,
-  mixBGKernelSize: 1,
-}
-folderGaussianBlurring.add(settingsParams, 'gaussianKernelSize', 0, 21, 2).name('kernel size').listen().onChange((value) => {
-  if (value % 2 === 0) settingsParams.gaussianKernelSize = value + 1;
+  bilateralSelectDiameter: presets[Object.keys(presets)[0]],
+  mixSelectDiameter: presets[Object.keys(presets)[0]],
+  manualDiameter: 1,
+  manualSigma: 50,
+};
+
+folderBilateralFiltering.add(settingsParams, 'bilateralSelectDiameter', presets).name('presets');
+folderBilateralFilterMix.add(settingsParams, 'mixSelectDiameter', presets).name('presets');
+
+folderManualBilateralFiltering.add(settingsParams, 'manualDiameter', 1, 15, 1).name('diameter');
+folderManualBilateralFiltering.add(settingsParams, 'manualSigma', 50, 255, 1).name('sigma');
+
+folderBilateralFiltering.domElement.addEventListener('click', () => {
+  openFolderName = 'folderBilateralFiltering';
+  folderBilateralFilterMix.close();
+  folderManualBilateralFiltering.close();
 });
-
-folderMedianBlurring.add(settingsParams, 'medianKernelSize', 0, 15, 2).name('kernel size').listen().onChange((value) => {
-  if (value % 2 === 0) settingsParams.medianKernelSize = value + 1;
+folderBilateralFilterMix.domElement.addEventListener('click', () => {
+  openFolderName = 'folderBilateralFilterMix';
+  folderBilateralFiltering.close();
+  folderManualBilateralFiltering.close();
 });
-
-folderBilateralFiltering.add(settingsParams, 'bilateralDiameter', 1, 15, 1).name('diameter');
-folderBilateralFiltering.add(settingsParams, 'bilateralSigma', 1, 255, 1).name('sigma');
-
-folderMixBG.add(settingsParams, 'mixBGDiameter', 1, 15, 1).name('diameter');
-folderMixBG.add(settingsParams, 'mixBGSigma', 1, 255, 1).name('sigma');
-folderMixBG.add(settingsParams, 'mixBGKernelSize', 0, 15, 2).name('kernel size').listen().onChange((value) => {
-  if (value % 2 === 0) settingsParams.mixBGKernelSize = value + 1;
+folderManualBilateralFiltering.domElement.addEventListener('click', () => {
+  openFolderName = 'folderManualBilateralFiltering';
+  folderBilateralFiltering.close();
+  folderBilateralFilterMix.close();
 });
-
 
 // ------------------------------------------------------------------------------------>
 
 function setFilter() {
+  const sigma = 50;
+
   switch (openFolderName) {
-    case 'folderGaussianBlurring':
-      gaussian_blurring(settingsParams.gaussianKernelSize);
-      break;
-    case 'folderMedianBlurring':
-      median_blurring(settingsParams.medianKernelSize);
-      break;
     case 'folderBilateralFiltering':
-      bilateral_filtering(settingsParams.bilateralDiameter, settingsParams.bilateralSigma);
+      bilateral_filtering(+settingsParams.bilateralSelectDiameter, sigma);
       break;
-    case 'folderMixBG':
-      bilateral_filter_gauss(settingsParams.mixBGDiameter, settingsParams.mixBGSigma, settingsParams.mixBGKernelSize)
+    case 'folderBilateralFilterMix':
+      bilateral_filter_mix(+settingsParams.mixSelectDiameter, sigma);
+      break;
+    case 'folderManualBilateralFiltering':
+      bilateral_filtering(+settingsParams.manualDiameter, settingsParams.manualSigma);
       break;
   }
 }
 
-
 // ------------------------------------------------------------------------------------>
 
 let toggle = false;
-window.tf = tf
+window.tf = tf;
 
-let skipFrame = true
+let skipFrame = true;
 
 const stats = new Stats();
 
@@ -109,7 +85,7 @@ const ctxHelp = canvasHelp.getContext('2d');
 
 const outputWrapper = document.querySelector('.output');
 
-outputWrapper.style.display = 'none'
+outputWrapper.style.display = 'none';
 
 let canvasFilter = document.querySelector('#filtered');
 
@@ -125,7 +101,7 @@ const state = {
 };
 
 async function loadFaceMesh() {
-  model = await facemesh.load({maxFaces: 1});
+  model = await facemesh.load({ maxFaces: 1 });
 }
 
 async function setupCamera() {
@@ -139,8 +115,8 @@ async function setupCamera() {
     audio: false,
     video: {
       width: 640,
-      height: 480
-    }
+      height: 480,
+    },
   });
 
   return new Promise((resolve) => {
@@ -168,12 +144,11 @@ async function renderPrediction() {
 
   if (skipFrame) {
     if (toggle) {
-      await doRender()
+      await doRender();
     }
   } else {
-    await doRender()
+    await doRender();
   }
-
 
   async function doRender() {
     tf.engine().startScope();
@@ -181,35 +156,40 @@ async function renderPrediction() {
     const predictions = await model.getFace(state.video, true);
 
     if (predictions.length > 0) {
-      const box = predictions[0].boxCPU
-      const {faceSize} = predictions[0]
+      const box = predictions[0].boxCPU;
+      const { faceSize } = predictions[0];
 
       const cropSizeReal = [parseInt(faceSize[0]), parseInt(faceSize[1])];
       const cropSize = [300, 300];
 
-      let faceNormal = predictions[0].faceNormal.squeeze()
-      let faceSmall = predictions[0].face.squeeze()
+      let faceNormal = predictions[0].faceNormal.squeeze();
+      let faceSmall = predictions[0].face.squeeze();
 
       for (const prediction of predictions) {
-        const arr = await tf.browser.toPixels(faceNormal)
+        const arr = await tf.browser.toPixels(faceNormal);
         const idata = new ImageData(arr, cropSize[0], cropSize[1]);
 
-        canvasHelp.width = cropSize[0]
-        canvasHelp.height = cropSize[1]
-        ctxHelp.putImageData(idata, 0, 0)
+        canvasHelp.width = cropSize[0];
+        canvasHelp.height = cropSize[1];
+        ctxHelp.putImageData(idata, 0, 0);
 
-        setFilter()
+        setFilter();
 
-        ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
+        ctxFinal.drawImage(
+          canvasHelp,
+          box.startPoint[0],
+          box.startPoint[1],
+          cropSizeReal[0],
+          cropSizeReal[1]
+        );
 
         const imageData = ctxFinal.getImageData(0, 0, canvasFinal.width, canvasFinal.height);
-        const ctxFilter = canvasFilter.getContext('2d')
+        const ctxFilter = canvasFilter.getContext('2d');
         ctxFilter.putImageData(imageData, 0, 0);
       }
 
-      faceSmall.dispose()
-      faceNormal.dispose()
-
+      faceSmall.dispose();
+      faceNormal.dispose();
     }
 
     tf.engine().endScope();
@@ -218,7 +198,6 @@ async function renderPrediction() {
   stats.end();
   requestAnimationFrame(renderPrediction);
 }
-
 
 async function init() {
   await tf.setBackend('webgl');
@@ -234,7 +213,6 @@ async function init() {
   setupFPS();
 
   await renderPrediction();
-
 }
 
-init();
+init().then();
