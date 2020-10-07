@@ -226,19 +226,19 @@ export function lowPassHighPass(image, high_pass_threshold, blur_sigma, truncati
   return out
 }
 
-export const bilateral_filter = (sigmaSpace = 9) => {
+export const bilateral_filtering = (diameter, sigma) => {
   let src = cv.imread('help');
   let dst = new cv.Mat();
   cv.cvtColor(src, src, cv.COLOR_RGBA2RGB, 0);
 // You can try more different parameters
-  cv.bilateralFilter(src, dst, sigmaSpace, 75, 75, cv.BORDER_DEFAULT);
+  cv.bilateralFilter(src, dst, diameter, sigma, sigma, cv.BORDER_DEFAULT);
   cv.imshow('help', dst);
   src.delete(); dst.delete();
 }
 
-export const bilateral_filter_gauss = () => {
+export const bilateral_filter_gauss = (diameter, sigma, kernelSize) => {
   let smooth_rate = 0.7
-  let gauss_kernel_size = 3
+  let gauss_kernel_size = kernelSize
 
   let src = cv.imread('help');
 
@@ -255,7 +255,7 @@ export const bilateral_filter_gauss = () => {
 
   cv.cvtColor(src, src, cv.COLOR_RGBA2RGB, 0);
   // You can try more different parameters
-  cv.bilateralFilter(src, dst_1, 8, 75, 75, cv.BORDER_DEFAULT);
+  cv.bilateralFilter(src, dst_1, diameter, sigma, sigma, cv.BORDER_DEFAULT);
   cv.GaussianBlur(dst_1, dst_2, {width: gauss_kernel_size, height: gauss_kernel_size}, 0, 0, cv.BORDER_DEFAULT)
 
   src.convertTo(src, cv.CV_32FC3)
@@ -265,7 +265,7 @@ export const bilateral_filter_gauss = () => {
   // im_smooth = np.minimum(smooth_rate * im_ga + (1 - smooth_rate) * im_bgr, 255).astype('uint8')
 
   cv.multiply(smooth_rate_mat, dst_2, mul_1);
-  console.log('running')
+  // console.log('running')
 
   cv.multiply(smooth_rate_rev_mat, src, mul_2);
   cv.add(mul_1, mul_2, add_1);
@@ -283,4 +283,23 @@ export const bilateral_filter_gauss = () => {
   mul_2.delete();
   add_1.delete();
   out.delete();
+}
+
+export const gaussian_blurring = (kernelSize) => {
+  let src = cv.imread('help');
+  let dst = new cv.Mat();
+  let ksize = new cv.Size(+kernelSize, +kernelSize);
+// You can try more different parameters
+  cv.GaussianBlur(src, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
+  cv.imshow('help', dst);
+  src.delete(); dst.delete();
+}
+
+export const median_blurring = (kernelSize) => {
+  let src = cv.imread('help');
+  let dst = new cv.Mat();
+// You can try more different parameters
+  cv.medianBlur(src, dst, kernelSize);
+  cv.imshow('help', dst);
+  src.delete(); dst.delete();
 }

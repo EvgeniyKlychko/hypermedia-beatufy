@@ -2,19 +2,96 @@ import './assets/index.css';
 import * as tf from '@tensorflow/tfjs';
 import Stats from 'stats.js';
 import * as facemesh from './lib/facemesh-custom';
-import {bilateral_filter, bilateral_filter_gauss} from './utils';
+import {
+  bilateral_filter_gauss,
+  gaussian_blurring,
+  median_blurring,
+  bilateral_filtering
+} from './utils';
+import * as dat from 'dat.gui';
 
-// Sliders --------------------------------------------------------------------------->
-let sigmaSpace = 1;
-const sigmaSpaceEl = document.querySelector('#blur-sigma')
-const sigmaSpaceText = document.querySelector('#blur-sigma-text')
-sigmaSpaceText.innerHTML = sigmaSpace
-sigmaSpaceEl.defaultValue = 0
 
-sigmaSpaceEl.addEventListener('input', (e) => {
-  sigmaSpace = +e.target.value
-  sigmaSpaceText.innerHTML = sigmaSpace.toString()
+// GUI Settings ----------------------------------------------------------------------->
+const gui = new dat.GUI({width: 410});
+const folderGaussianBlurring = gui.addFolder('Gaussian Blurring');
+const folderMedianBlurring = gui.addFolder('Median Blurring');
+const folderBilateralFiltering = gui.addFolder('Bilateral Filtering');
+const folderMixBG = gui.addFolder('Bilateral Filtering with Gaussian Blurring');
+
+let openFolderName = 'folderGaussianBlurring';
+folderGaussianBlurring.open()
+
+folderGaussianBlurring.domElement.addEventListener('click', () => {
+  openFolderName = 'folderGaussianBlurring'
+  folderMedianBlurring.close()
+  folderBilateralFiltering.close()
+  folderMixBG.close()
 })
+folderMedianBlurring.domElement.addEventListener('click', () => {
+  openFolderName = 'folderMedianBlurring'
+  folderGaussianBlurring.close()
+  folderBilateralFiltering.close()
+  folderMixBG.close()
+})
+folderBilateralFiltering.domElement.addEventListener('click', () => {
+  openFolderName = 'folderBilateralFiltering'
+  folderGaussianBlurring.close()
+  folderMedianBlurring.close()
+  folderMixBG.close()
+})
+folderMixBG.domElement.addEventListener('click', () => {
+  openFolderName = 'folderMixBG'
+  folderGaussianBlurring.close()
+  folderMedianBlurring.close()
+  folderBilateralFiltering.close()
+})
+
+const settingsParams = {
+  gaussianKernelSize: 1,
+  medianKernelSize: 1,
+  bilateralDiameter: 1,
+  bilateralSigma: 1,
+  mixBGDiameter: 1,
+  mixBGSigma: 1,
+  mixBGKernelSize: 1,
+}
+folderGaussianBlurring.add(settingsParams, 'gaussianKernelSize', 0, 21, 2).name('kernel size').listen().onChange((value) => {
+  if (value % 2 === 0) settingsParams.gaussianKernelSize = value + 1;
+});
+
+folderMedianBlurring.add(settingsParams, 'medianKernelSize', 0, 15, 2).name('kernel size').listen().onChange((value) => {
+  if (value % 2 === 0) settingsParams.medianKernelSize = value + 1;
+});
+
+folderBilateralFiltering.add(settingsParams, 'bilateralDiameter', 1, 15, 1).name('diameter');
+folderBilateralFiltering.add(settingsParams, 'bilateralSigma', 1, 255, 1).name('sigma');
+
+folderMixBG.add(settingsParams, 'mixBGDiameter', 1, 15, 1).name('diameter');
+folderMixBG.add(settingsParams, 'mixBGSigma', 1, 255, 1).name('sigma');
+folderMixBG.add(settingsParams, 'mixBGKernelSize', 0, 15, 2).name('kernel size').listen().onChange((value) => {
+  if (value % 2 === 0) settingsParams.mixBGKernelSize = value + 1;
+});
+
+
+// ------------------------------------------------------------------------------------>
+
+function setFilter() {
+  switch (openFolderName) {
+    case 'folderGaussianBlurring':
+      gaussian_blurring(settingsParams.gaussianKernelSize);
+      break;
+    case 'folderMedianBlurring':
+      median_blurring(settingsParams.medianKernelSize);
+      break;
+    case 'folderBilateralFiltering':
+      bilateral_filtering(settingsParams.bilateralDiameter, settingsParams.bilateralSigma);
+      break;
+    case 'folderMixBG':
+      bilateral_filter_gauss(settingsParams.mixBGDiameter, settingsParams.mixBGSigma, settingsParams.mixBGKernelSize)
+      break;
+  }
+}
+
 
 // ------------------------------------------------------------------------------------>
 
@@ -42,6 +119,7 @@ const truncation_thresh_kernel = 4.0
 const high_pass_threshold = 0.45
 
 let model;
+
 function setupFPS() {
   stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
   document.body.appendChild(stats.dom);
@@ -64,7 +142,7 @@ async function setupCamera() {
 
   videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
     audio: false,
-    video:  {
+    video: {
       width: 640,
       height: 480
     }
@@ -95,7 +173,7 @@ async function renderPrediction() {
 
   if (skipFrame) {
     if (toggle) {
-     await doRender()
+      await doRender()
     }
   } else {
     await doRender()
@@ -117,7 +195,7 @@ async function renderPrediction() {
       let faceNormal = predictions[0].faceNormal.squeeze()
       let faceSmall = predictions[0].face.squeeze()
 
-      for (const prediction of predictions){
+      for (const prediction of predictions) {
         const arr = await tf.browser.toPixels(faceNormal)
         const idata = new ImageData(arr, cropSize[0], cropSize[1]);
 
@@ -125,8 +203,7 @@ async function renderPrediction() {
         canvasHelp.height = cropSize[1]
         ctxHelp.putImageData(idata, 0, 0)
 
-        bilateral_filter(sigmaSpace)
-        // bilateral_filter_gauss()
+        setFilter()
 
         ctxFinal.drawImage(canvasHelp, box.startPoint[0], box.startPoint[1], cropSizeReal[0], cropSizeReal[1]);
 
@@ -164,4 +241,5 @@ async function init() {
   await renderPrediction();
 
 }
+
 init();
