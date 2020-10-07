@@ -113,11 +113,6 @@ outputWrapper.style.display = 'none'
 
 let canvasFilter = document.querySelector('#filtered');
 
-const blur_sigma = 1.2
-const truncation_thresh_kernel = 4.0
-
-const high_pass_threshold = 0.45
-
 let model;
 
 function setupFPS() {
@@ -129,7 +124,7 @@ const state = {
   video: null,
 };
 
-async function loadFacemesh() {
+async function loadFaceMesh() {
   model = await facemesh.load({maxFaces: 1});
 }
 
@@ -234,7 +229,7 @@ async function init() {
   canvasFilter.width = state.video.width;
   canvasFilter.height = state.video.height;
 
-  await loadFacemesh();
+  await loadFaceMesh();
 
   setupFPS();
 
