@@ -6,7 +6,7 @@ import { bilateral_filter_mix, bilateral_filtering } from './utils';
 import * as dat from 'dat.gui';
 
 // GUI Settings ----------------------------------------------------------------------->
-const gui = new dat.GUI({ width: 410 });
+const gui = new dat.GUI({ width: 300 });
 const folderBilateralFiltering = gui.addFolder('Bilateral Filter with presets');
 const folderBilateralFilterMix = gui.addFolder(
   'Mixes (the original image with bilateral filter) with presets'
@@ -78,8 +78,8 @@ let skipFrame = true;
 
 const stats = new Stats();
 
-const canvasFinal = document.querySelector('#output');
-const ctxFinal = canvasFinal.getContext('2d');
+const canvasOutput = document.querySelector('#output');
+const ctxOutput = canvasOutput.getContext('2d');
 const canvasHelp = document.querySelector('#help');
 const ctxHelp = canvasHelp.getContext('2d');
 
@@ -152,7 +152,7 @@ async function renderPrediction() {
 
   async function doRender() {
     tf.engine().startScope();
-    ctxFinal.drawImage(state.video, 0, 0);
+    ctxOutput.drawImage(state.video, 0, 0);
     const predictions = await model.getFace(state.video, true);
 
     if (predictions.length > 0) {
@@ -175,7 +175,7 @@ async function renderPrediction() {
 
         setFilter();
 
-        ctxFinal.drawImage(
+        ctxOutput.drawImage(
           canvasHelp,
           box.startPoint[0],
           box.startPoint[1],
@@ -183,7 +183,7 @@ async function renderPrediction() {
           cropSizeReal[1]
         );
 
-        const imageData = ctxFinal.getImageData(0, 0, canvasFinal.width, canvasFinal.height);
+        const imageData = ctxOutput.getImageData(0, 0, canvasOutput.width, canvasOutput.height);
         const ctxFilter = canvasFilter.getContext('2d');
         ctxFilter.putImageData(imageData, 0, 0);
       }
@@ -202,8 +202,8 @@ async function renderPrediction() {
 async function init() {
   await tf.setBackend('webgl');
   await loadVideo();
-  canvasFinal.width = state.video.width;
-  canvasFinal.height = state.video.height;
+  canvasOutput.width = state.video.width;
+  canvasOutput.height = state.video.height;
 
   canvasFilter.width = state.video.width;
   canvasFilter.height = state.video.height;

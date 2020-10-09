@@ -1,50 +1,54 @@
 .container {
-    margin: auto;
-    margin-top: 220px;
-    position: relative;
-    display: flex;
-}
-
-#video {
-    display: block;
-    margin: auto;
+  position: relative;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  margin-top: 300px;
 }
 
 #output {
-    display: block;
-    margin: auto;
-}
-
-#small {
-    display: none
+  display: block;
+  margin: auto;
 }
 
 #help {
-    position: fixed;
-    top: 150px;
+  position: fixed;
+  top: 150px;
 }
 
 .video {
-    display: inline-block;
-    padding: 10px;
-    border: 1px solid black;
+  display: none;
+  padding: 10px;
+  border: 1px solid black;
 }
 
 .output {
-    display: inline-block;
-    padding: 10px;
-    border: 1px solid black;
+  display: inline-block;
+  padding: 10px;
+  border: 1px solid black;
 }
 
 .filtered {
-    display: inline-block;
-    padding: 10px;
-    border: 1px solid black;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+#filtered {
+  width: 90% !important;
+  border: 1px solid black;
 }
 
 .settings {
-    position: absolute;
-    right: 20px;
-    top: 20px;
+  position: absolute;
+  top: 20px;
+  right: 20px;
 }
 
+/* GUI --------------------- */
+
+.dg.a {
+  position: absolute;
+  left: calc(50% - 150px);
+
+}
