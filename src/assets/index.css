@@ -1,48 +1,22 @@
 .container {
-  position: relative;
   display: flex;
+  align-items: center;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
-  margin-top: 300px;
+  padding: 300px 0 0 0;
 }
 
-#output {
-  display: block;
-  margin: auto;
-}
-
-#help {
-  position: fixed;
-  top: 150px;
-}
-
-.video {
+#video, #output, #help {
   display: none;
-  padding: 10px;
-  border: 1px solid black;
 }
 
-.output {
-  display: inline-block;
-  padding: 10px;
-  border: 1px solid black;
-}
 
-.filtered {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
 
 #filtered {
-  width: 90% !important;
   border: 1px solid black;
-}
-
-.settings {
-  position: absolute;
-  top: 20px;
-  right: 20px;
+  border-radius: 15px;
+  overflow: hidden;
 }
 
 /* GUI --------------------- */
@@ -50,5 +24,5 @@
 .dg.a {
   position: absolute;
   left: calc(50% - 150px);
-
 }
+

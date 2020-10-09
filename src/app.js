@@ -4,6 +4,7 @@ import Stats from 'stats.js';
 import * as facemesh from './lib/facemesh-custom';
 import { bilateral_filter_mix, bilateral_filtering } from './utils';
 import * as dat from 'dat.gui';
+import {CROP_SIZE, VIDEO_SIZE} from './constants/crop-size';
 
 // GUI Settings ----------------------------------------------------------------------->
 const gui = new dat.GUI({ width: 300 });
@@ -83,10 +84,6 @@ const ctxOutput = canvasOutput.getContext('2d');
 const canvasHelp = document.querySelector('#help');
 const ctxHelp = canvasHelp.getContext('2d');
 
-const outputWrapper = document.querySelector('.output');
-
-outputWrapper.style.display = 'none';
-
 let canvasFilter = document.querySelector('#filtered');
 
 let model;
@@ -114,8 +111,8 @@ async function setupCamera() {
   videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
     audio: false,
     video: {
-      width: 640,
-      height: 480,
+      width: VIDEO_SIZE,
+      // height: VIDEO_SIZE,
     },
   });
 
@@ -160,7 +157,7 @@ async function renderPrediction() {
       const { faceSize } = predictions[0];
 
       const cropSizeReal = [parseInt(faceSize[0]), parseInt(faceSize[1])];
-      const cropSize = [300, 300];
+      const cropSize = CROP_SIZE;
 
       let faceNormal = predictions[0].faceNormal.squeeze();
       let faceSmall = predictions[0].face.squeeze();
