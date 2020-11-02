@@ -4,13 +4,12 @@
   flex-direction: column;
   width: 100vw;
   height: 100vh;
-  padding: 300px 0 0 0;
+  padding: 350px 0 0 0;
 }
 
 #video, #output, #help {
   display: none;
 }
-
 
 
 #filtered {
@@ -20,6 +19,10 @@
 }
 
 /* GUI --------------------- */
+
+.dg.ac {
+  transform: scale(2) !important;
+}
 
 .dg.a {
   position: absolute;
