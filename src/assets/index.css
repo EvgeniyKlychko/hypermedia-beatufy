@@ -4,11 +4,11 @@
   flex-direction: column;
   width: 100vw;
   height: 100vh;
-  padding: 350px 0 0 0;
+  padding: 0 0 0 0;
 }
 
 #video, #output, #help {
-  display: none;
+  /* display: none; */
 }
 
 
@@ -21,11 +21,12 @@
 /* GUI --------------------- */
 
 .dg.ac {
-  transform: scale(2) !important;
+  transform: scale(1) !important;
 }
 
 .dg.a {
   position: absolute;
-  left: calc(50% - 150px);
+  width: 300px;
+  left: calc(100% - 300px);
 }
 
