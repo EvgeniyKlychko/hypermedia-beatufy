@@ -4,10 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build-face": "rimraf ./src/lib/facemesh && tsc --project tsconfig.facemesh.json",
-    "build-face-custom": "rimraf ./src/lib/facemesh-custom && tsc --project tsconfig.facemesh.custom.json",
-    "watch-face-custom": "tsc --project tsconfig.facemesh.custom.json --watch",
-    "start": "webpack-dev-server --config ./webpack.config.js"
+    "start": "webpack-dev-server --config ./webpack.config.js",
+    "build": "webpack --config ./webpack.config.js"
   },
   "author": "",
   "license": "ISC",
