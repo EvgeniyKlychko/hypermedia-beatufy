@@ -4068,8 +4068,131 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
     value: true
   });
   _exports["default"] = void 0;
-  var _default = "\n#define SIGMA 10.0\n#define BSIGMA 0.1\n#define MSIZE 15\n#define USE_CONSTANT_KERNEL\n#define SKIN_DETECTION\n\nuniform vec3 iResolution;\nuniform float iTime;\nuniform sampler2D iChannel0;\nuniform float Brightness;\nvarying vec2 vUv;\nvec3 iMouse = vec3(0,0,0);\n\nconst bool GAMMA_CORRECTION = false;\nfloat kernel[MSIZE];\n\nfloat normpdf(in float x, in float sigma) {\n\treturn 0.39894 * exp(-0.5 * x * x/ (sigma * sigma)) / sigma;\n}\nfloat normpdf3(in vec3 v, in float sigma) {\n\treturn 0.39894 * exp(-0.5 * dot(v,v) / (sigma * sigma)) / sigma;\n}\nfloat normalizeColorChannel(in float value, in float min, in float max) {\n  return (value - min)/(max-min);\n}\n\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord ) {\n\tvec3 c = texture(iChannel0, (fragCoord.xy / iResolution.xy)).rgb;\n  const int kSize = (MSIZE - 1) / 2;\n  vec3 final_colour = vec3(0.0);\n  float Z = 0.0;\n\n  #ifdef USE_CONSTANT_KERNEL\n    // unfortunately, WebGL 1.0 does not support constant arrays...\n    kernel[0] = kernel[14] = 0.031225216;\n    kernel[1] = kernel[13] = 0.033322271;\n    kernel[2] = kernel[12] = 0.035206333;\n    kernel[3] = kernel[11] = 0.036826804;\n    kernel[4] = kernel[10] = 0.038138565;\n    kernel[5] = kernel[9]  = 0.039104044;\n    kernel[6] = kernel[8]  = 0.039695028;\n    kernel[7] = 0.039894000;\n    float bZ = 0.2506642602897679;\n  #else\n    //create the 1-D kernel\n    for (int j = 0; j <= kSize; ++j) {\n      kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), SIGMA);\n    }\n    float bZ = 1.0 / normpdf(0.0, BSIGMA);\n  #endif\n\n  vec3 cc;\n  float factor;\n  //read out the texels\n  for (int i=-kSize; i <= kSize; ++i) {\n    for (int j=-kSize; j <= kSize; ++j) {\n      cc = texture(iChannel0, (fragCoord.xy+vec2(float(i),float(j))) / iResolution.xy).rgb;\n      factor = normpdf3(cc-c, BSIGMA) * bZ * kernel[kSize+j] * kernel[kSize+i];\n      Z += factor;\n      if (GAMMA_CORRECTION) {\n        final_colour += factor * pow(cc, vec3(2.2));\n      } else {\n        final_colour += factor * cc;\n      }\n    }\n  }\n\n  if (GAMMA_CORRECTION) {\n    fragColor = vec4(pow(final_colour / Z, vec3(1.0/2.2)), 1.0);\n  } else {\n    fragColor = vec4(final_colour / Z, 1.0);\n  }\n\n  bool isSkin = true;\n\n  #ifdef SKIN_DETECTION\n    isSkin = false;\n    vec4 rgb = fragColor * 255.0;\n    vec4 ycbcr = rgb;\n    ycbcr.x = 16.0 + rgb.x*0.257 + rgb.y*0.504 + rgb.z*0.098;\n    ycbcr.y = 128.0 - rgb.x*0.148 - rgb.y*0.291 + rgb.z*0.439;\n    ycbcr.z = 128.0 + rgb.x*0.439 - rgb.y*0.368 - rgb.z*0.071;\n    if (ycbcr.y > 100.0 && ycbcr.y < 118.0 && ycbcr.z > 121.0 && ycbcr.z < 161.0) {\n      isSkin = true;\n    }\n  #endif\n\n  if (iMouse.z > 0.0 || !isSkin) {\n    fragColor = vec4(texture(iChannel0, fragCoord.xy / iResolution.xy).xyz, 1.0);\n  }\n\n  fragColor = vec4(fragColor.xyz * Brightness, 1.0);\n}\n\nvoid main() {\n  mainImage(gl_FragColor, gl_FragCoord.xy);\n}\n";
+  var _default = "\n// #define MSIZE 15\n// #define SKIN_DETECTION\nuniform vec3 iResolution;\nuniform float iTime;\nuniform sampler2D iChannel0;\nuniform float Brightness;\nuniform float SIGMA;\nuniform float BSIGMA;\nvarying vec2 vUv;\nvec3 iMouse = vec3(0,0,0);\n\nconst bool GAMMA_CORRECTION = false;\nfloat kernel[MSIZE];\n\nfloat normpdf(in float x, in float sigma) {\n\treturn 0.39894 * exp(-0.5 * x * x/ (sigma * sigma)) / sigma;\n}\nfloat normpdf3(in vec3 v, in float sigma) {\n\treturn 0.39894 * exp(-0.5 * dot(v,v) / (sigma * sigma)) / sigma;\n}\nfloat normalizeColorChannel(in float value, in float min, in float max) {\n  return (value - min)/(max-min);\n}\n\nvoid mainImage( out vec4 fragColor, in vec2 fragCoord ) {\n\tvec3 c = texture(iChannel0, (fragCoord.xy / iResolution.xy)).rgb;\n  const int kSize = (MSIZE - 1) / 2;\n  vec3 final_colour = vec3(0.0);\n  float Z = 0.0;\n\n  // #ifdef USE_CONSTANT_KERNEL\n  //   // unfortunately, WebGL 1.0 does not support constant arrays...\n  //   kernel[0] = kernel[14] = 0.031225216;\n  //   kernel[1] = kernel[13] = 0.033322271;\n  //   kernel[2] = kernel[12] = 0.035206333;\n  //   kernel[3] = kernel[11] = 0.036826804;\n  //   kernel[4] = kernel[10] = 0.038138565;\n  //   kernel[5] = kernel[9]  = 0.039104044;\n  //   kernel[6] = kernel[8]  = 0.039695028;\n  //   kernel[7] = 0.039894000;\n  //   float bZ = 0.2506642602897679;\n  // #else\n    //create the 1-D kernel\n    for (int j = 0; j <= kSize; ++j) {\n      kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), SIGMA);\n    }\n    float bZ = 1.0 / normpdf(0.0, BSIGMA);\n  // #endif\n\n  vec3 cc;\n  float factor;\n  //read out the texels\n  for (int i=-kSize; i <= kSize; ++i) {\n    for (int j=-kSize; j <= kSize; ++j) {\n      cc = texture(iChannel0, (fragCoord.xy+vec2(float(i),float(j))) / iResolution.xy).rgb;\n      factor = normpdf3(cc-c, BSIGMA) * bZ * kernel[kSize+j] * kernel[kSize+i];\n      Z += factor;\n      if (GAMMA_CORRECTION) {\n        final_colour += factor * pow(cc, vec3(2.2));\n      } else {\n        final_colour += factor * cc;\n      }\n    }\n  }\n\n  if (GAMMA_CORRECTION) {\n    fragColor = vec4(pow(final_colour / Z, vec3(1.0/2.2)), 1.0);\n  } else {\n    fragColor = vec4(final_colour / Z, 1.0);\n  }\n\n  bool isSkin = true;\n  #ifdef SKIN_DETECTION\n    isSkin = false;\n    vec4 rgb = fragColor * 255.0;\n    vec4 ycbcr = rgb;\n    ycbcr.x = 16.0 + rgb.x*0.257 + rgb.y*0.504 + rgb.z*0.098;\n    ycbcr.y = 128.0 - rgb.x*0.148 - rgb.y*0.291 + rgb.z*0.439;\n    ycbcr.z = 128.0 + rgb.x*0.439 - rgb.y*0.368 - rgb.z*0.071;\n    if (ycbcr.y > 100.0 && ycbcr.y < 118.0 && ycbcr.z > 121.0 && ycbcr.z < 161.0) {\n      isSkin = true;\n    }\n  #endif\n\n  if (iMouse.z > 0.0 || !isSkin) {\n    fragColor = vec4(texture(iChannel0, fragCoord.xy / iResolution.xy).xyz, 1.0);\n  }\n\n  fragColor = vec4(fragColor.xyz * Brightness, 1.0);\n}\n\nvoid main() {\n  mainImage(gl_FragColor, gl_FragCoord.xy);\n}\n";
   _exports["default"] = _default;
+});
+
+/***/ }),
+
+/***/ "./PresetManager.js":
+/*!**************************!*\
+  !*** ./PresetManager.js ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (global, factory) {
+  if (true) {
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [exports, __webpack_require__(/*! @babel/runtime/helpers/classCallCheck */ "../../node_modules/@babel/runtime/helpers/classCallCheck.js"), __webpack_require__(/*! @babel/runtime/helpers/createClass */ "../../node_modules/@babel/runtime/helpers/createClass.js")], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
+				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
+				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+  } else { var mod; }
+})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (_exports, _classCallCheck2, _createClass2) {
+  "use strict";
+
+  var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ "../../node_modules/@babel/runtime/helpers/interopRequireDefault.js");
+
+  Object.defineProperty(_exports, "__esModule", {
+    value: true
+  });
+  _exports.Preset = _exports.PresetManager = void 0;
+  _classCallCheck2 = _interopRequireDefault(_classCallCheck2);
+  _createClass2 = _interopRequireDefault(_createClass2);
+
+  var PresetManager = function () {
+    function PresetManager(gui) {
+      var _this = this;
+
+      (0, _classCallCheck2["default"])(this, PresetManager);
+      this.guiFolder = gui.addFolder('Presets');
+      this.guiFolder.open();
+      this.presetList = [new Preset(this.guiFolder, "Blur 0.1", function (preset) {
+        return _this.applyPreset(preset);
+      }, {
+        MSIZE: 15,
+        SKIN_DETECTION: true,
+        Brightness: 1,
+        SIGMA: 15,
+        BSIGMA: 0.1
+      }), new Preset(this.guiFolder, "Blur 1", function (preset) {
+        return _this.applyPreset(preset);
+      }, {
+        MSIZE: 15,
+        SKIN_DETECTION: true,
+        Brightness: 1,
+        SIGMA: 15,
+        BSIGMA: 1
+      }), new Preset(this.guiFolder, "Blur 10", function (preset) {
+        return _this.applyPreset(preset);
+      }, {
+        MSIZE: 15,
+        SKIN_DETECTION: true,
+        Brightness: 1,
+        SIGMA: 15,
+        BSIGMA: 10
+      })];
+    }
+
+    (0, _createClass2["default"])(PresetManager, [{
+      key: "setRenderPass",
+      value: function setRenderPass(pass) {
+        this.renderPass = pass;
+      }
+    }, {
+      key: "applyPreset",
+      value: function applyPreset(preset) {
+        this.renderPass.setPreset(preset);
+      }
+    }]);
+    return PresetManager;
+  }();
+
+  _exports.PresetManager = PresetManager;
+
+  var Preset = function () {
+    function Preset(guiFolder) {
+      var name = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "unnamed";
+      var onChange = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function (preset) {};
+      var initializer = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : {
+        MSIZE: 15,
+        SKIN_DETECTION: true,
+        Brightness: 1,
+        SIGMA: 15,
+        BSIGMA: 0.1
+      };
+      (0, _classCallCheck2["default"])(this, Preset);
+      this.name = name;
+      this.onChange = onChange;
+      this.defines = {
+        MSIZE: initializer.MSIZE,
+        SKIN_DETECTION: initializer.SKIN_DETECTION
+      };
+      this.parameters = {
+        Brightness: initializer.Brightness,
+        SIGMA: initializer.SIGMA,
+        BSIGMA: initializer.BSIGMA
+      };
+
+      if (guiFolder) {
+        this.guiFolder = guiFolder.addFolder("".concat(name));
+        this.guiFolder.open();
+        this.guiFolder.add(this.defines, "MSIZE", 3, 31, 1).name("Radius");
+        this.guiFolder.add(this.parameters, "BSIGMA", 0, 1).name("Strength");
+        this.guiFolder.add(this, "handleChange").name("Apply");
+      }
+    }
+
+    (0, _createClass2["default"])(Preset, [{
+      key: "handleChange",
+      value: function handleChange() {
+        this.onChange(this);
+      }
+    }]);
+    return Preset;
+  }();
+
+  _exports.Preset = Preset;
 });
 
 /***/ }),
@@ -4083,12 +4206,12 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (global, factory) {
   if (true) {
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [exports, __webpack_require__(/*! @babel/runtime/helpers/classCallCheck */ "../../node_modules/@babel/runtime/helpers/classCallCheck.js"), __webpack_require__(/*! @babel/runtime/helpers/createClass */ "../../node_modules/@babel/runtime/helpers/createClass.js"), __webpack_require__(/*! ./PixelShader */ "./PixelShader.js"), __webpack_require__(/*! ./VertexShader */ "./VertexShader.js")], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [exports, __webpack_require__(/*! @babel/runtime/helpers/classCallCheck */ "../../node_modules/@babel/runtime/helpers/classCallCheck.js"), __webpack_require__(/*! @babel/runtime/helpers/createClass */ "../../node_modules/@babel/runtime/helpers/createClass.js"), __webpack_require__(/*! ./PixelShader */ "./PixelShader.js"), __webpack_require__(/*! ./VertexShader */ "./VertexShader.js"), __webpack_require__(/*! ./PresetManager */ "./PresetManager.js")], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
 				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
 				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
   } else { var mod; }
-})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (_exports, _classCallCheck2, _createClass2, _PixelShader, _VertexShader) {
+})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (_exports, _classCallCheck2, _createClass2, _PixelShader, _VertexShader, _PresetManager) {
   "use strict";
 
   var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ "../../node_modules/@babel/runtime/helpers/interopRequireDefault.js");
@@ -4104,18 +4227,13 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
   var RenderPass = function () {
     function RenderPass(name, gui, stats, canvas, video) {
-      var _this = this;
-
       (0, _classCallCheck2["default"])(this, RenderPass);
       console.info('Pass()', this);
-      this.guiFolder = gui.addFolder("Pass. ".concat(name));
+      this.guiFolder = gui.addFolder("Blurring System");
       this.guiFolder.open();
-      this.parameters = {
-        Brightness: 1
-      };
-      this.guiFolder.add(this.parameters, "Brightness", 0, 2, 0.01).onChange(function (v) {
-        return _this._updateParameters();
-      });
+      this.preset = new _PresetManager.Preset();
+      this.presetName = this.preset.name;
+      this.guiFolder.add(this, 'presetName').listen().name("Selected Preset");
       this.date = new Date();
       this.gui = gui;
       this.stats = stats;
@@ -4134,25 +4252,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
       this.vertexShader = _VertexShader["default"];
       this.pixelShader = _PixelShader["default"];
       this.geometry = new THREE.BoxGeometry(1, 1, 1);
-      this.material = new THREE.ShaderMaterial({
-        uniforms: {
-          iTime: {
-            value: 0
-          },
-          iResolution: {
-            value: new THREE.Vector3()
-          },
-          iChannel0: {
-            type: 't',
-            value: this.texture
-          },
-          Brightness: {
-            value: this.parameters.Brightness
-          }
-        },
-        vertexShader: this.vertexShader,
-        fragmentShader: this.pixelShader
-      });
+      this.material = this._createShaderMaterial();
       this.mesh = new THREE.Mesh(this.geometry, this.material);
       this.scene.add(this.mesh);
     }
@@ -4174,10 +4274,57 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
         requestAnimationFrame(this.render.bind(this));
       }
     }, {
+      key: "setPreset",
+      value: function setPreset(preset) {
+        this.preset = preset;
+        this.presetName = this.preset.name;
+
+        this._updateMaterial();
+      }
+    }, {
+      key: "_updateMaterial",
+      value: function _updateMaterial() {
+        this.material = this._createShaderMaterial();
+        this.mesh.material = this.material;
+      }
+    }, {
+      key: "_createShaderMaterial",
+      value: function _createShaderMaterial() {
+        return new THREE.ShaderMaterial({
+          defines: {
+            MSIZE: parseInt(this.preset.defines.MSIZE),
+            SKIN_DETECTION: this.preset.defines.SKIN_DETECTION
+          },
+          uniforms: {
+            iTime: {
+              value: 0
+            },
+            iResolution: {
+              value: new THREE.Vector3()
+            },
+            iChannel0: {
+              type: 't',
+              value: this.texture
+            },
+            Brightness: {
+              value: this.preset.parameters.Brightness
+            },
+            SIGMA: {
+              value: this.preset.parameters.SIGMA
+            },
+            BSIGMA: {
+              value: this.preset.parameters.BSIGMA
+            }
+          },
+          vertexShader: this.vertexShader,
+          fragmentShader: this.pixelShader
+        });
+      }
+    }, {
       key: "_updateParameters",
       value: function _updateParameters() {
         for (var k in this.parameters) {
-          this.material.uniforms[k].value = this.parameters[k];
+          this.material.uniforms[k].value = this.preset.parameters[k];
         }
       }
     }]);
@@ -4387,12 +4534,12 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (global, factory) {
   if (true) {
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(/*! @babel/runtime/regenerator */ "../../node_modules/@babel/runtime/regenerator/index.js"), __webpack_require__(/*! @babel/runtime/helpers/asyncToGenerator */ "../../node_modules/@babel/runtime/helpers/asyncToGenerator.js"), __webpack_require__(/*! ../assets/index.css */ "../assets/index.css"), __webpack_require__(/*! dat.gui */ "../../node_modules/dat.gui/build/dat.gui.module.js"), __webpack_require__(/*! ./RenderPass */ "./RenderPass.js"), __webpack_require__(/*! ./VideoManager */ "./VideoManager.js"), __webpack_require__(/*! ./StatsManager */ "./StatsManager.js")], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(/*! @babel/runtime/regenerator */ "../../node_modules/@babel/runtime/regenerator/index.js"), __webpack_require__(/*! @babel/runtime/helpers/asyncToGenerator */ "../../node_modules/@babel/runtime/helpers/asyncToGenerator.js"), __webpack_require__(/*! ../assets/index.css */ "../assets/index.css"), __webpack_require__(/*! dat.gui */ "../../node_modules/dat.gui/build/dat.gui.module.js"), __webpack_require__(/*! ./RenderPass */ "./RenderPass.js"), __webpack_require__(/*! ./VideoManager */ "./VideoManager.js"), __webpack_require__(/*! ./StatsManager */ "./StatsManager.js"), __webpack_require__(/*! ./PresetManager */ "./PresetManager.js")], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
 				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
 				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
   } else { var mod; }
-})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (_regenerator, _asyncToGenerator2, _index, dat, _RenderPass, _VideoManager, _StatsManager) {
+})(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : this, function (_regenerator, _asyncToGenerator2, _index, dat, _RenderPass, _VideoManager, _StatsManager, _PresetManager) {
   "use strict";
 
   var _interopRequireWildcard = __webpack_require__(/*! @babel/runtime/helpers/interopRequireWildcard */ "../../node_modules/@babel/runtime/helpers/interopRequireWildcard.js");
@@ -4407,6 +4554,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   });
   var statsManager = new _StatsManager.StatsManager();
   var videoManager = new _VideoManager.VideoManager();
+  var presetManager = new _PresetManager.PresetManager(gui);
 
   function init() {
     return _init.apply(this, arguments);
@@ -4424,9 +4572,11 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
             case 2:
               pass1 = new _RenderPass.RenderPass('1', gui, statsManager.stats, document.querySelector('#output'), videoManager.video);
+              presetManager.setRenderPass(pass1);
+              pass1.setPreset(presetManager.presetList[0]);
               pass1.beginRender();
 
-            case 4:
+            case 6:
             case "end":
               return _context.stop();
           }
