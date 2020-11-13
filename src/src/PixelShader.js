@@ -1,14 +1,12 @@
 export default `
-#define SIGMA 10.0
-#define BSIGMA 0.1
-#define MSIZE 15
-#define USE_CONSTANT_KERNEL
-#define SKIN_DETECTION
-
+// #define MSIZE 15
+// #define SKIN_DETECTION
 uniform vec3 iResolution;
 uniform float iTime;
 uniform sampler2D iChannel0;
 uniform float Brightness;
+uniform float SIGMA;
+uniform float BSIGMA;
 varying vec2 vUv;
 vec3 iMouse = vec3(0,0,0);
 
@@ -31,24 +29,24 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
   vec3 final_colour = vec3(0.0);
   float Z = 0.0;
 
-  #ifdef USE_CONSTANT_KERNEL
-    // unfortunately, WebGL 1.0 does not support constant arrays...
-    kernel[0] = kernel[14] = 0.031225216;
-    kernel[1] = kernel[13] = 0.033322271;
-    kernel[2] = kernel[12] = 0.035206333;
-    kernel[3] = kernel[11] = 0.036826804;
-    kernel[4] = kernel[10] = 0.038138565;
-    kernel[5] = kernel[9]  = 0.039104044;
-    kernel[6] = kernel[8]  = 0.039695028;
-    kernel[7] = 0.039894000;
-    float bZ = 0.2506642602897679;
-  #else
+  // #ifdef USE_CONSTANT_KERNEL
+  //   // unfortunately, WebGL 1.0 does not support constant arrays...
+  //   kernel[0] = kernel[14] = 0.031225216;
+  //   kernel[1] = kernel[13] = 0.033322271;
+  //   kernel[2] = kernel[12] = 0.035206333;
+  //   kernel[3] = kernel[11] = 0.036826804;
+  //   kernel[4] = kernel[10] = 0.038138565;
+  //   kernel[5] = kernel[9]  = 0.039104044;
+  //   kernel[6] = kernel[8]  = 0.039695028;
+  //   kernel[7] = 0.039894000;
+  //   float bZ = 0.2506642602897679;
+  // #else
     //create the 1-D kernel
     for (int j = 0; j <= kSize; ++j) {
       kernel[kSize+j] = kernel[kSize-j] = normpdf(float(j), SIGMA);
     }
     float bZ = 1.0 / normpdf(0.0, BSIGMA);
-  #endif
+  // #endif
 
   vec3 cc;
   float factor;
@@ -73,7 +71,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
   }
 
   bool isSkin = true;
-
   #ifdef SKIN_DETECTION
     isSkin = false;
     vec4 rgb = fragColor * 255.0;
