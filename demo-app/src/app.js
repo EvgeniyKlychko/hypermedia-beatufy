@@ -1,10 +1,12 @@
 import './assets/index.css';
 import * as dat from 'dat.gui';
+import adapter from './adapter';
 import { RenderPass } from './RenderPass';
 import { VideoManager } from './VideoManager';
 import { StatsManager } from './StatsManager';
 import { PresetManager } from './PresetManager';
 
+console.log('adapter: ', adapter);
 // -------------------------------------------------------------------------------------
 const gui = new dat.GUI({ width: 300 });
 const statsManager = new StatsManager();

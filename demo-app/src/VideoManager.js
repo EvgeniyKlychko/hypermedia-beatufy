@@ -5,27 +5,44 @@ export class VideoManager {
   }
 
   async load(videoId) {
+    console.info('VideoManager.load()');
     this.video = await setupCamera();
     this.video.play();
+    console.log('video', video);
     async function setupCamera() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Browser API navigator.mediaDevices.getUserMedia not available');
-      }
+      console.info('VideoManager.setupCamera()');
       const videoElement = document.getElementById(videoId);
-      videoElement.srcObject = await navigator.mediaDevices.getUserMedia({
+      const options = {
         audio: false,
         video: {
           width: 1080,
-          height: 820,
+          height: 720,
           facingMode: 'user'
         },
-      });
-      return new Promise((resolve) => {
-        videoElement.onloadedmetadata = () => {
-          videoElement.width = videoElement.videoWidth;
-          videoElement.height = videoElement.videoHeight;
-          resolve(videoElement);
-        };
+      };
+      return new Promise(async (resolve, reject) => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.warn('no getUserMedia available');
+          // if (navigator.webkitGetUserMedia) {
+          //   console.log('using webkitGetUserMedia');
+          //   navigator.webkitGetUserMedia(options, () => {
+          //     console.log('webkitGetUserMedia success');
+          //     resolve(videoElement);
+          //   }, (error) => {
+          //     console.warn('webkitGetUserMedia error', error);
+          //     reject(error);
+          //   });
+          // } else {
+          // }
+          reject(new Error('Browser API navigator.mediaDevices.getUserMedia not available'));
+        } else {
+          videoElement.srcObject = await navigator.mediaDevices.getUserMedia(options);
+          videoElement.onloadedmetadata = () => {
+            videoElement.width = videoElement.videoWidth;
+            videoElement.height = videoElement.videoHeight;
+            resolve(videoElement);
+          };
+        }
       });
     }
   }
