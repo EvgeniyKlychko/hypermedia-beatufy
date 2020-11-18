@@ -4,12 +4,12 @@ import { Preset } from "./PresetManager";
 
 export class RenderPass {
 
-  constructor(name, gui, stats, canvas, video) {
+  constructor(name, gui, stats, canvas, video, preset) {
     console.info('Pass()', this);
     // ------------------------------------------------------------------------
     this.guiFolder = gui.addFolder(`Blurring System`);
     this.guiFolder.open();
-    this.preset = new Preset();
+    this.preset = preset;
     this.presetName = this.preset.name;
     this.guiFolder.add(this, 'presetName').listen().name(`Selected Preset`);
     this.date = new Date();
@@ -60,11 +60,9 @@ export class RenderPass {
   }
 
   _createShaderMaterial() {
-    return new THREE.ShaderMaterial({
-      defines: {
-        MSIZE: parseInt(this.preset.defines.MSIZE),
-        SKIN_DETECTION: this.preset.defines.SKIN_DETECTION
-      },
+    console.groupCollapsed(`RenderPass.createShaderMaterial()`);
+    console.log('preset: ', this.preset);
+    const output = new THREE.RawShaderMaterial({
       uniforms: {
         iTime: { value: 0 },
         iResolution: { value: new THREE.Vector3() },
@@ -73,9 +71,13 @@ export class RenderPass {
         SIGMA: { value: this.preset.parameters.SIGMA },
         BSIGMA: { value: this.preset.parameters.BSIGMA }
       },
-      vertexShader: this.vertexShader,
-      fragmentShader: this.pixelShader
+      vertexShader: this.vertexShader(),
+      fragmentShader: this.pixelShader(this.preset.defines.MSIZE, this.preset.defines.SKIN_DETECTION)
     });
+    console.log(output.vertexShader);
+    console.log(output.fragmentShader);
+    console.groupEnd();
+    return output;
   }
 
   _updateParameters() {

@@ -1,4 +1,4 @@
-import '../assets/index.css';
+import './assets/index.css';
 import * as dat from 'dat.gui';
 import { RenderPass } from './RenderPass';
 import { VideoManager } from './VideoManager';
@@ -16,9 +16,9 @@ async function init() {
   const pass1 = new RenderPass(
     '1', gui, statsManager.stats,
     document.querySelector('#output'),
-    videoManager.video);
+    videoManager.video,
+    presetManager.presetList[2]);
   presetManager.setRenderPass(pass1);
-  pass1.setPreset(presetManager.presetList[0]);
   pass1.beginRender();
 }
 // -------------------------------------------------------------------------------------
