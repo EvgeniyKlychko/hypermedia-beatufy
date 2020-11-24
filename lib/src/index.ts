@@ -1,2 +1,2 @@
-export * from './Preset';
-export * from './RenderPass';
+export { Preset } from "./Preset";
+export { RenderPass } from "./RenderPass";

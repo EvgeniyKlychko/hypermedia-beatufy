@@ -8,7 +8,6 @@ export class VideoManager {
     console.info('VideoManager.load()');
     this.video = await setupCamera();
     this.video.play();
-    console.log('video', video);
     async function setupCamera() {
       console.info('VideoManager.setupCamera()');
       const videoElement = document.getElementById(videoId);

@@ -8,8 +8,6 @@ export declare class RenderPass {
     scene: THREE.Scene;
     camera: THREE.OrthographicCamera;
     geometry: THREE.BoxGeometry;
-    vertexShader: string;
-    pixelShader: string;
     renderer: THREE.WebGLRenderer;
     texture: THREE.VideoTexture;
     material: THREE.ShaderMaterial;

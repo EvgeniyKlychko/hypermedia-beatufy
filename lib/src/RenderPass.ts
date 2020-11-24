@@ -9,8 +9,6 @@ export class RenderPass {
   scene = new THREE.Scene();
   camera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0.01, 1000);
   geometry = new THREE.BoxGeometry(1, 1, 1);
-  vertexShader = VertexShader;
-  pixelShader = PixelShader;
   renderer: THREE.WebGLRenderer;
   texture: THREE.VideoTexture;
   material: THREE.ShaderMaterial;
@@ -35,7 +33,6 @@ export class RenderPass {
     this.material.uniforms['iTime'].value = this.time.getTime() / 1000;
     this.material.uniforms['iResolution'].value.set(this.canvas.width, this.canvas.height, 1);
     this.renderer.render(this.scene, this.camera);
-    requestAnimationFrame(this.render.bind(this));
   }
 
   setPreset(preset: Preset) {
@@ -44,11 +41,7 @@ export class RenderPass {
   }
 
   private _updateMaterial() {
-    this.material = new THREE.ShaderMaterial({
-      defines: {
-        MSIZE: Math.round(this.preset.defines.MSIZE),
-        SKIN_DETECTION: this.preset.defines.SKIN_DETECTION
-      },
+    this.material = new THREE.RawShaderMaterial({
       uniforms: {
         iTime: { value: this.time.getTime() / 1000 },
         iResolution: { value: new THREE.Vector3() },
@@ -57,8 +50,11 @@ export class RenderPass {
         SIGMA: { value: this.preset.uniforms.SIGMA },
         BSIGMA: { value: this.preset.uniforms.BSIGMA }
       },
-      vertexShader: this.vertexShader,
-      fragmentShader: this.pixelShader
+      vertexShader: VertexShader(),
+      fragmentShader: PixelShader(
+        Math.round(this.preset.defines.MSIZE),
+        this.preset.defines.SKIN_DETECTION
+      )
     });
     this.mesh.material = this.material;
   }
