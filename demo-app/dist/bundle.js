@@ -4289,65 +4289,16 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
       var _this = this;
 
       (0, _classCallCheck2["default"])(this, PresetManager);
+      console.log('PresetManager', this);
       this.guiFolder = gui.addFolder('Presets');
       this.guiFolder.open();
-      this.presetList = [new _Lib.Preset(this.guiFolder, "Blur(Scale 0.1, Radius 3px)", function (preset) {
-        return _this.applyPreset(preset);
-      }, {
-        MSIZE: 3,
-        SKIN_DETECTION: true,
-        Brightness: 1,
-        SIGMA: 15,
-        BSIGMA: 0.1
-      }), new _Lib.Preset(this.guiFolder, "Blur(Scale 0.1, Radius 7px)", function (preset) {
-        return _this.applyPreset(preset);
-      }, {
-        MSIZE: 7,
-        SKIN_DETECTION: true,
-        Brightness: 1,
-        SIGMA: 15,
-        BSIGMA: 0.1
-      }), new _Lib.Preset(this.guiFolder, "Blur(Scale 0.1, Radius 15px)", function (preset) {
-        return _this.applyPreset(preset);
-      }, {
-        MSIZE: 15,
-        SKIN_DETECTION: true,
-        Brightness: 1,
-        SIGMA: 15,
-        BSIGMA: 0.1
-      }), new _Lib.Preset(this.guiFolder, "Blur(Scale 0.1, Radius 25px)", function (preset) {
-        return _this.applyPreset(preset);
-      }, {
-        MSIZE: 25,
-        SKIN_DETECTION: true,
-        Brightness: 1,
-        SIGMA: 15,
-        BSIGMA: 0.1
-      }), new _Lib.Preset(this.guiFolder, "Blur(Scale 0.1, Radius 31px)", function (preset) {
-        return _this.applyPreset(preset);
-      }, {
-        MSIZE: 31,
-        SKIN_DETECTION: true,
-        Brightness: 1,
-        SIGMA: 15,
-        BSIGMA: 0.1
-      }), new _Lib.Preset(this.guiFolder, "Blur(Scale 1, Radius 15px)", function (preset) {
-        return _this.applyPreset(preset);
-      }, {
-        MSIZE: 15,
-        SKIN_DETECTION: true,
-        Brightness: 1,
-        SIGMA: 15,
-        BSIGMA: 1
-      }), new _Lib.Preset(this.guiFolder, "Blur(Scale 10, Radius 15px)", function (preset) {
-        return _this.applyPreset(preset);
-      }, {
-        MSIZE: 15,
-        SKIN_DETECTION: true,
-        Brightness: 1,
-        SIGMA: 15,
-        BSIGMA: 10
-      })];
+      this.presetList = [new _Lib.Preset("Blur(Radius 15px)")];
+      this.presetList.forEach(function (p) {
+        var folder = _this.guiFolder.addFolder("Preset ".concat(p.name));
+
+        folder.open();
+        folder.add(p.defines, 'MSIZE', 3, 31, 1).name("Radius");
+      });
     }
 
     (0, _createClass2["default"])(PresetManager, [{
