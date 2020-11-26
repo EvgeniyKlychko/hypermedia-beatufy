@@ -1,4 +1,4 @@
-import { Preset } from '../../lib/dist';
+import { Preset } from './Lib';
 
 export class PresetManager {
 

@@ -1,6 +1,6 @@
 import './assets/index.css';
 import * as dat from 'dat.gui';
-import { RenderPass } from '../../lib/dist';
+import { RenderPass } from './Lib';
 import { VideoManager } from './VideoManager';
 import { StatsManager } from './StatsManager';
 import { PresetManager } from './PresetManager';
