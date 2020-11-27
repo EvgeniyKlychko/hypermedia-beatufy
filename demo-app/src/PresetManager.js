@@ -3,19 +3,16 @@ import { Preset } from './Lib';
 export class PresetManager {
 
   constructor(gui) {
-    console.log('PresetManager', this);
+    console.info('PresetManager()', this);
+    this.presetList = [];
+    this.selectedPresetName = '';
     this.guiFolder = gui.addFolder('Presets');
     this.guiFolder.open();
+    this.guiFolder.add(this, 'selectedPresetName').listen();
+  }
 
-    this.presetList = [
-      new Preset(`Blur(Radius 15px)`)
-    ];
-
-    this.presetList.forEach(p => {
-      const folder = this.guiFolder.addFolder(`Preset ${p.name}`);
-      folder.open();
-      folder.add(p.defines, 'MSIZE', 3, 31, 1).name(`Radius`);
-    });
+  addPreset(preset) {
+    this.presetList.push(new PresetController(preset, this.guiFolder, (p) => this.applyPreset(p)));
   }
 
   setRenderPass(pass) {
@@ -23,6 +20,27 @@ export class PresetManager {
   }
 
   applyPreset(preset) {
+    console.info('PresetManager.applyPreset()', preset);
+    this.selectedPresetName = preset.name;
     this.renderPass.setPreset(preset);
+  }
+}
+
+export class PresetController {
+
+  constructor(preset, gui, applyCallback = (preset) => {}) {
+    console.info(`PresetController()`, this);
+    this.gui = gui;
+    this.preset = preset;
+    this.onApply = applyCallback;
+    this.guiFolder = gui.addFolder(`Preset ${preset.name}`);
+    this.guiFolder.open();
+    this.guiFolder.add(preset.defines, 'MSIZE', 3, 31, 1).name(`Radius`);
+    this.guiFolder.add(preset.uniforms, 'Brightness', 0, 2, 0.1).name(`Brightness`);
+    this.guiFolder.add(this, 'apply');
+  }
+
+  apply() {
+    this.onApply(this.preset);
   }
 }

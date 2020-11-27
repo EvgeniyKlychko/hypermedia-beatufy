@@ -1,3 +1,7 @@
+/**
+ * Container for blur settings
+ * @param name - { string } optional name
+*/
 export declare class Preset {
     name: string;
     defines: {

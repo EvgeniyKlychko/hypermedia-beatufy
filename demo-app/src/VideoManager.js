@@ -4,13 +4,12 @@ export class VideoManager {
     this.video = null;
   }
 
-  async load(videoId) {
+  async load(videoElement) {
     console.info('VideoManager.load()');
     this.video = await setupCamera();
     this.video.play();
     async function setupCamera() {
       console.info('VideoManager.setupCamera()');
-      const videoElement = document.getElementById(videoId);
       const options = {
         audio: false,
         video: {
@@ -21,18 +20,6 @@ export class VideoManager {
       };
       return new Promise(async (resolve, reject) => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          console.warn('no getUserMedia available');
-          // if (navigator.webkitGetUserMedia) {
-          //   console.log('using webkitGetUserMedia');
-          //   navigator.webkitGetUserMedia(options, () => {
-          //     console.log('webkitGetUserMedia success');
-          //     resolve(videoElement);
-          //   }, (error) => {
-          //     console.warn('webkitGetUserMedia error', error);
-          //     reject(error);
-          //   });
-          // } else {
-          // }
           reject(new Error('Browser API navigator.mediaDevices.getUserMedia not available'));
         } else {
           videoElement.srcObject = await navigator.mediaDevices.getUserMedia(options);

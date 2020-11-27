@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import { VertexShader, PixelShader } from "./Shaders";
 import { Preset } from "./Preset";
 
+/**
+ * Use this to render input video on output canvas.
+ * @param canvas - { HTMLCanvasElement } output canvas
+ * @param video - { HTMLVideoElement } input video
+ */
 export class RenderPass {
 
   preset = new Preset();
@@ -28,6 +33,9 @@ export class RenderPass {
     this.scene.add(this.mesh);
   }
 
+  /**
+   * Renders video on canvas with blur
+   */
   render() {
     this.texture.needsUpdate = true;
     this.material.uniforms['iTime'].value = this.time.getTime() / 1000;
@@ -35,6 +43,10 @@ export class RenderPass {
     this.renderer.render(this.scene, this.camera);
   }
 
+  /**
+   * Apply new settings of blurring
+   * @param preset - { Preset } new preset to use
+   */
   setPreset(preset: Preset) {
     this.preset = preset;
     this._updateMaterial();

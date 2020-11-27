@@ -1,13 +1,29 @@
-# Beauty chat
+# Blurring Library
 
-## Run in browser
-* Run `npm install`
-* Run `npm start` in one terminal
+## How to build
+```
+npm install
+npm run build
+```
 
+## How to use
 
-## Run on mobile device
-* Run `npm install`
-* Run `npm start`
-* Download https://ngrok.com/
-* Run `ngrok http 8080 -host-header="localhost:8080"`
-* Open https url on mobile device
+1. Copy library code.
+
+```
+copy content of /dist folder
+```
+
+2. Use it to render something.
+
+```
+import { RenderPass, Preset } from '<index.js file location>';
+
+const pass = new RenderPass(
+  outputCanvas,
+  htmlVideoElement);
+const preset = new Preset(`Blur(Radius 15px)`);
+pass.setPreset(preset);
+
+pass.render();
+```

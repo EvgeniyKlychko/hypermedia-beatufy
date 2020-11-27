@@ -1,3 +1,6 @@
+/**
+ * Returns vertex shader GLSL code;
+ */
 export const VertexShader = function() {
   return `
     #version 100
@@ -17,7 +20,11 @@ export const VertexShader = function() {
   `
 };
 
-
+/**
+ * Returns fragment shader GLSL code;
+ * @param MSIZE - { number } radius of blur
+ * @param SKIN_DETECTION - { boolean } if should use skin mask to apply blur
+ */
 export const PixelShader = function(MSIZE = 15, SKIN_DETECTION = true) {
   return `
     #version 100

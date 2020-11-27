@@ -4280,28 +4280,31 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   Object.defineProperty(_exports, "__esModule", {
     value: true
   });
-  _exports.PresetManager = void 0;
+  _exports.PresetController = _exports.PresetManager = void 0;
   _classCallCheck2 = _interopRequireDefault(_classCallCheck2);
   _createClass2 = _interopRequireDefault(_createClass2);
 
   var PresetManager = function () {
     function PresetManager(gui) {
-      var _this = this;
-
       (0, _classCallCheck2["default"])(this, PresetManager);
-      console.log('PresetManager', this);
+      console.info('PresetManager()', this);
+      this.presetList = [];
+      this.selectedPresetName = '';
       this.guiFolder = gui.addFolder('Presets');
       this.guiFolder.open();
-      this.presetList = [new _Lib.Preset("Blur(Radius 15px)")];
-      this.presetList.forEach(function (p) {
-        var folder = _this.guiFolder.addFolder("Preset ".concat(p.name));
-
-        folder.open();
-        folder.add(p.defines, 'MSIZE', 3, 31, 1).name("Radius");
-      });
+      this.guiFolder.add(this, 'selectedPresetName').listen();
     }
 
     (0, _createClass2["default"])(PresetManager, [{
+      key: "addPreset",
+      value: function addPreset(preset) {
+        var _this = this;
+
+        this.presetList.push(new PresetController(preset, this.guiFolder, function (p) {
+          return _this.applyPreset(p);
+        }));
+      }
+    }, {
       key: "setRenderPass",
       value: function setRenderPass(pass) {
         this.renderPass = pass;
@@ -4309,6 +4312,8 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
     }, {
       key: "applyPreset",
       value: function applyPreset(preset) {
+        console.info('PresetManager.applyPreset()', preset);
+        this.selectedPresetName = preset.name;
         this.renderPass.setPreset(preset);
       }
     }]);
@@ -4316,6 +4321,32 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   }();
 
   _exports.PresetManager = PresetManager;
+
+  var PresetController = function () {
+    function PresetController(preset, gui) {
+      var applyCallback = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function (preset) {};
+      (0, _classCallCheck2["default"])(this, PresetController);
+      console.info("PresetController()", this);
+      this.gui = gui;
+      this.preset = preset;
+      this.onApply = applyCallback;
+      this.guiFolder = gui.addFolder("Preset ".concat(preset.name));
+      this.guiFolder.open();
+      this.guiFolder.add(preset.defines, 'MSIZE', 3, 31, 1).name("Radius");
+      this.guiFolder.add(preset.uniforms, 'Brightness', 0, 2, 0.1).name("Brightness");
+      this.guiFolder.add(this, 'apply');
+    }
+
+    (0, _createClass2["default"])(PresetController, [{
+      key: "apply",
+      value: function apply() {
+        this.onApply(this.preset);
+      }
+    }]);
+    return PresetController;
+  }();
+
+  _exports.PresetController = PresetController;
 });
 
 /***/ }),
@@ -4395,7 +4426,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
     (0, _createClass2["default"])(VideoManager, [{
       key: "load",
       value: function () {
-        var _load = (0, _asyncToGenerator2["default"])(_regenerator["default"].mark(function _callee3(videoId) {
+        var _load = (0, _asyncToGenerator2["default"])(_regenerator["default"].mark(function _callee3(videoElement) {
           var setupCamera, _setupCamera;
 
           return _regenerator["default"].wrap(function _callee3$(_context3) {
@@ -4404,13 +4435,12 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
                 case 0:
                   _setupCamera = function _setupCamera3() {
                     _setupCamera = (0, _asyncToGenerator2["default"])(_regenerator["default"].mark(function _callee2() {
-                      var videoElement, options;
+                      var options;
                       return _regenerator["default"].wrap(function _callee2$(_context2) {
                         while (1) {
                           switch (_context2.prev = _context2.next) {
                             case 0:
                               console.info('VideoManager.setupCamera()');
-                              videoElement = document.getElementById(videoId);
                               options = {
                                 audio: false,
                                 video: {
@@ -4426,20 +4456,19 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
                                       switch (_context.prev = _context.next) {
                                         case 0:
                                           if (!(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
-                                            _context.next = 5;
+                                            _context.next = 4;
                                             break;
                                           }
 
-                                          console.warn('no getUserMedia available');
                                           reject(new Error('Browser API navigator.mediaDevices.getUserMedia not available'));
-                                          _context.next = 9;
+                                          _context.next = 8;
                                           break;
 
-                                        case 5:
-                                          _context.next = 7;
+                                        case 4:
+                                          _context.next = 6;
                                           return navigator.mediaDevices.getUserMedia(options);
 
-                                        case 7:
+                                        case 6:
                                           videoElement.srcObject = _context.sent;
 
                                           videoElement.onloadedmetadata = function () {
@@ -4448,7 +4477,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
                                             resolve(videoElement);
                                           };
 
-                                        case 9:
+                                        case 8:
                                         case "end":
                                           return _context.stop();
                                       }
@@ -4461,7 +4490,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
                                 };
                               }()));
 
-                            case 4:
+                            case 3:
                             case "end":
                               return _context2.stop();
                           }
@@ -4530,8 +4559,18 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   _regenerator = _interopRequireDefault(_regenerator);
   _asyncToGenerator2 = _interopRequireDefault(_asyncToGenerator2);
   dat = _interopRequireWildcard(dat);
+  var videoId = 'video';
+  var canvasId = 'output';
+  var videoElement = document.getElementById(videoId);
+  var canvasElement = document.getElementById(canvasId);
+  var settings = {
+    InputVideoVisible: true
+  };
   var gui = new dat.GUI({
     width: 300
+  });
+  gui.add(settings, 'InputVideoVisible').onChange(function (v) {
+    return _updateVideoVisibility();
   });
   var statsManager = new _StatsManager.StatsManager();
   var videoManager = new _VideoManager.VideoManager();
@@ -4543,7 +4582,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 
   function _init() {
     _init = (0, _asyncToGenerator2["default"])(_regenerator["default"].mark(function _callee() {
-      var pass1, _render;
+      var pass1, preset1, preset2, preset3, _render;
 
       return _regenerator["default"].wrap(function _callee$(_context) {
         while (1) {
@@ -4551,19 +4590,32 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
             case 0:
               _render = function _render2() {
                 pass1.render();
+                statsManager.stats.update();
                 requestAnimationFrame(_render);
               };
 
               _context.next = 3;
-              return videoManager.load('video');
+              return videoManager.load(videoElement);
 
             case 3:
-              pass1 = new _Lib.RenderPass(document.querySelector('#output'), videoManager.video);
+              _updateVideoVisibility();
+
+              pass1 = new _Lib.RenderPass(canvasElement, videoElement);
+              preset1 = new _Lib.Preset("Blur(Radius 5px)");
+              preset1.defines.MSIZE = 5;
+              preset2 = new _Lib.Preset("Blur(Radius 15px)");
+              preset2.defines.MSIZE = 15;
+              preset3 = new _Lib.Preset("Blur(Radius 25px)");
+              preset3.defines.MSIZE = 25;
               presetManager.setRenderPass(pass1);
+              presetManager.addPreset(preset1);
+              presetManager.addPreset(preset2);
+              presetManager.addPreset(preset3);
+              presetManager.applyPreset(preset2);
 
               _render();
 
-            case 6:
+            case 17:
             case "end":
               return _context.stop();
           }
@@ -4571,6 +4623,10 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
       }, _callee);
     }));
     return _init.apply(this, arguments);
+  }
+
+  function _updateVideoVisibility() {
+    videoElement.style.display = settings.InputVideoVisible ? 'block' : 'none';
   }
 
   window.addEventListener('load', init);
